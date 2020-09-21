@@ -411,7 +411,7 @@ static void reverse(unsigned char *p, int size)
     }
 }
 
-int big_num_compare(big_num data1, big_num data2)
+static int big_num_compare(big_num data1, big_num data2)
 {
     int i;
     for (i = 31; i >= 0; i--) {

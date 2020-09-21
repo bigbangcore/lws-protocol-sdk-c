@@ -71,8 +71,6 @@ int hook_shared_key_get(const SharedKeyGet callback, void *ctx);
 int hook_blake2b_get(const Blake2bGet callback, void *ctx);
 int hook_public_sign_ed25519(const SignEd25519 callback, void *ctx);
 
-int big_num_compare(big_num data1, big_num data2);
-
 // 初始化sdk 须在用户回调注册完毕后执行
 int lws_protocol_init();
 
