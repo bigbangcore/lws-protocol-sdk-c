@@ -95,7 +95,8 @@ static int arraylist_append(ArrayList *arraylist, ArrayListValue data)
     return arraylist_insert(arraylist, arraylist->length, data);
 }
 
-static int arraylist_prepend(ArrayList *arraylist, ArrayListValue data) { return arraylist_insert(arraylist, 0, data); }
+// static int arraylist_prepend(ArrayList *arraylist, ArrayListValue data) { return arraylist_insert(arraylist, 0,
+// data); }
 
 static void arraylist_remove_range(ArrayList *arraylist, unsigned int index, unsigned int length)
 {
@@ -373,20 +374,20 @@ static size_t hex_to_uchar(const char *hex, unsigned char *bin)
  * @param  char *           hex
  * @return static size_t
  */
-static size_t uchar_to_hex(const unsigned char *bin, const size_t size, char *hex)
-{
-    const char symbol[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-    for (int i = 0; i < size; i++) {
-        unsigned char c = *((unsigned char *)(bin + sizeof(unsigned char) * i));
-        unsigned char hex_l = c & 0x0f;
-        unsigned char hex_h = (c >> 4);
-        *hex = symbol[hex_h];
-        *(hex + 1) = symbol[hex_l];
-        hex += 2;
-    }
+// static size_t uchar_to_hex(const unsigned char *bin, const size_t size, char *hex)
+// {
+//     const char symbol[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+//     for (int i = 0; i < size; i++) {
+//         unsigned char c = *((unsigned char *)(bin + sizeof(unsigned char) * i));
+//         unsigned char hex_l = c & 0x0f;
+//         unsigned char hex_h = (c >> 4);
+//         *hex = symbol[hex_h];
+//         *(hex + 1) = symbol[hex_l];
+//         hex += 2;
+//     }
 
-    return 2 * size;
-}
+//     return 2 * size;
+// }
 
 /**
  * @brief  reverse
@@ -620,6 +621,8 @@ static int compare_utxo(ArrayListValue v1, ArrayListValue v2)
     if (-1 == ret) {
         return -1;
     }
+
+    return -1;
 }
 
 /**
@@ -1026,7 +1029,7 @@ static Transaction *lws_create_tx(const unsigned char *address, const VchData *v
     new_utxo.new_amount = utxo->new_amount;
 
     Transaction *tx = (Transaction *)malloc(sizeof(Transaction));
-    memset(tx, 0x00, sizeof(tx));
+    memset(tx, 0x00, sizeof(Transaction));
     tx->version = 1;
     tx->type = 0x00;
 
@@ -1349,17 +1352,17 @@ static int lws_send_tx_inner(Transaction *tx, uint16_t *nonce, unsigned char *da
     return 0;
 }
 
-static void lws_restore_tx(Transaction *tx)
-{
-    struct UTXOIndex utxo_index;
-    memcpy(utxo_index.txid, tx->input, 32);
-    memcpy(&utxo_index.out, tx->input + 32, 1);
+// static void lws_restore_tx(Transaction *tx)
+// {
+//     struct UTXOIndex utxo_index;
+//     memcpy(utxo_index.txid, tx->input, 32);
+//     memcpy(&utxo_index.out, tx->input + 32, 1);
 
-    int index = arraylist_index_of(G.utxo_list, equal_utxo, &utxo_index);
-    struct UTXO *utxo = (struct UTXO *)G.utxo_list->data[index];
+//     int index = arraylist_index_of(G.utxo_list, equal_utxo, &utxo_index);
+//     struct UTXO *utxo = (struct UTXO *)G.utxo_list->data[index];
 
-    utxo->is_used = 0; // set this utxo is unused
-}
+//     utxo->is_used = 0; // set this utxo is unused
+// }
 
 /**
  * @brief  lwsiot_tx_destroy
@@ -1459,7 +1462,7 @@ size_t lws_sync_request(unsigned char *data)
 int lws_sync_reply_handle(const unsigned char *data, const size_t len, SyncResult *result)
 {
     if (NULL == result) {
-        -1;
+        return -1;
     }
 
     SyncReply sync_reply = sync_reply_deserialize(data);
