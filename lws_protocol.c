@@ -1575,3 +1575,89 @@ int lws_send_tx_reply_handle(const unsigned char *data, const size_t len, SendTx
 
     return reply.error;
 }
+
+struct _LWSProtocol {
+    uint32_t listunspent_index;
+    uint32_t sendtx_index;
+    LWSProtocolHook *hook;
+};
+
+LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol *protocol)
+{
+    if (NULL == hook) {
+        return LWSPError_Hook_NULL;
+    }
+
+    protocol = malloc(sizeof(LWSProtocol));
+    if (NULL == protocol) {
+        return LWSPError_Allocate_Fail;
+    }
+
+    memset(protocol, 0x00, sizeof(LWSProtocol));
+
+    protocol->hook = malloc(sizeof(LWSProtocolHook));
+    if (NULL == protocol->hook) {
+        return LWSPError_Allocate_Fail;
+    }
+
+    memset(protocol->hook, 0x00, sizeof(LWSProtocolHook));
+    memcpy(protocol->hook, hook, sizeof(LWSProtocolHook));
+    protocol->listunspent_index = 0;
+    protocol->sendtx_index = 0;
+
+    return LWSPError_Success;
+}
+
+struct ListUnspentRequest {
+    uint32_t nonce;
+    unsigned char address[33];
+    unsigned char fork_id[32];
+};
+
+LWSPError protocol_listunspent_request(LWSProtocol *protocol, sha256_hash hash, unsigned char *data, size_t *length)
+{
+    if (NULL == protocol) {
+        return LWSPError_Protocol_NULL;
+    }
+
+    struct ListUnspentRequest request;
+    if (NULL != protocol->hook->hook_nonce_get) {
+        request.nonce = protocol->hook->hook_nonce_get(protocol->hook->hook_nonce_context);
+    } else {
+        return LWSPError_HookNonceGet_NULL;
+    }
+
+    if (NULL != protocol->hook->hook_public_key_get) {
+        protocol->hook->hook_public_key_get(protocol->hook->hook_public_key_context, request.address);
+    } else {
+        return LWSPError_HookPublicKeyGet_NULL;
+    }
+
+    if (NULL != protocol->hook->hook_fork_get) {
+        protocol->hook->hook_fork_get(protocol->hook->hook_fork_context, request.fork_id);
+    } else {
+        return LWSPError_HookForkGet_NULL;
+    }
+
+    if (NULL != protocol->hook->hook_sha256_get) {
+        protocol->hook->hook_sha256_get(protocol->hook->hook_sha256_context, NULL, 0, hash);
+    }
+    protocol->listunspent_index++;
+
+    return LWSPError_Success;
+}
+
+LWSPError protocol_delete(LWSProtocol *protocol)
+{
+    if (NULL == protocol) {
+        return LWSPError_Protocol_NULL;
+    }
+
+    if (NULL != protocol->hook) {
+        free(protocol->hook);
+    }
+
+    free(protocol);
+
+    return LWSPError_Success;
+}

@@ -86,6 +86,59 @@ int lws_sync_reply_handle(const unsigned char *data, const size_t len, SyncResul
 size_t lws_send_tx_request(const char *address_hex, VchData *vch_data, unsigned char *data);
 int lws_send_tx_reply_handle(const unsigned char *data, const size_t len, SendTxResult *result);
 
+typedef big_num sha256_hash;
+
+typedef unsigned int (*HookNonceGet)(const void *ctx);
+typedef unsigned int (*HookDatetimeGet)(const void *ctx);
+typedef int (*HookDeviceIDGet)(const void *ctx, char *id);
+typedef int (*HookForkGet)(const void *ctx, big_num fork_out);
+typedef int (*HookPublicKeyGet)(const void *ctx, ed25519_public_key pk_out);
+typedef int (*HookBlake2bGet)(const void *ctx, const unsigned char *data, const size_t len, blake2b_hash hash);
+typedef int (*HookSHA256Get)(const void *ctx, const unsigned char *data, const size_t len, sha256_hash hash);
+typedef int (*HookSignEd25519)(const void *ctx, const unsigned char *data, const size_t len,
+                               ed25519_signature signature);
+
+typedef struct {
+    void *hook_nonce_context;
+    void *hook_datetime_context;
+    void *hook_device_id_context;
+    void *hook_fork_context;
+    void *hook_public_key_context;
+    void *hook_blake2b_context;
+    void *hook_sha256_context;
+    void *hook_public_sign_ed25519_context;
+
+    HookNonceGet hook_nonce_get;
+    HookDatetimeGet hook_datetime_get;
+    HookDeviceIDGet hook_device_id_get;
+    HookForkGet hook_fork_get;
+    HookPublicKeyGet hook_public_key_get;
+    HookBlake2bGet hook_blake2b_get;
+    HookSHA256Get hook_sha256_get;
+    HookSignEd25519 hook_public_sign_ed25519;
+} LWSProtocolHook;
+
+typedef struct _LWSProtocol LWSProtocol;
+
+typedef enum {
+    LWSPError_HookForkGet_NULL,
+    LWSPError_HookPublicKeyGet_NULL,
+    LWSPError_HookNonceGet_NULL,
+    LWSPError_Allocate_Fail,
+    LWSPError_Hook_NULL,
+    LWSPError_Protocol_NULL,
+    LWSPError_Success = 0,
+} LWSPError;
+
+LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol *protocol);
+LWSPError protocol_reply_hash(LWSProtocol *protocol, const unsigned char *data, sha256_hash hash);
+LWSPError protocol_listunspent_request(LWSProtocol *protocol, sha256_hash hash, unsigned char *data, size_t *length);
+LWSPError protocol_sendtx_request(LWSProtocol *protocol, const char *address, const VchData *vch, unsigned char *data,
+                                  sha256_hash hash);
+LWSPError protocol_listunspent_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len);
+LWSPError protocol_sendtx_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len);
+LWSPError protocol_delete(LWSProtocol *protocol);
+
 #ifdef __cplusplus
 }
 #endif
