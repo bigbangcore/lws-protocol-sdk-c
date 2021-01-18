@@ -89,7 +89,7 @@ size_t lws_send_tx_request(const char *address_hex, VchData *vch_data, unsigned 
 int lws_send_tx_reply_handle(const unsigned char *data, const size_t len, SendTxResult *result);
 
 // New LWS protocol
-
+#define VERSION 0x0002
 typedef big_num sha256_hash;
 
 typedef unsigned int (*HookNonceGet)(const void *ctx);

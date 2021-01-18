@@ -1630,9 +1630,43 @@ static int check_endian()
     return (*p == 1); /*1:little-endian, 0:big-endian*/
 }
 
+static int reverse_listunspent_endian(void *data, size_t len) { return 0; }
+
+static int reverse_sendtx_endian(void *data, size_t len) { return 0; }
+
+static int reverse_tx_endian(void *data, size_t len) { return 0; }
+
+enum Command { ListUnspent = 0x0011, SendTx = 0x0012 };
+
+struct RequestHead {
+    uint16_t version;
+    uint8_t length;
+    unsigned char *id;
+    unsigned char hash[32];
+};
+
+static int request_head_to_big_endian(struct RequestHead *head) { return 0; }
+
+static int request_foot_to_big_endian(uint32_t *foot) { return 0; }
+
 static LWSPError inner_wrap_request(LWSProtocol *protocol, const uint16_t command, const unsigned char *data,
                                     const size_t len, sha256_hash hash)
 {
+    struct RequestHead head;
+    head.version = VERSION;
+    head.length = protocol->id_length;
+    unsigned char device_id[256];
+    memcpy(device_id, protocol->id, protocol->id_length);
+    head.id = device_id;
+    memcpy(head.hash, hash, 32);
+    uint32_t foot = 0;
+
+    if (1 == check_endian()) {
+        request_head_to_big_endian(&head);
+        request_foot_to_big_endian(&foot);
+    }
+
+    // Request body
     unsigned char *msg = malloc(2 + len);
     memcpy(msg, &command, 2);
     memcpy(msg + 2, data, len);
