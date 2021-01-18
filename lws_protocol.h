@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 typedef unsigned char big_num[32];
 typedef big_num ed25519_signature;
 typedef big_num ed25519_public_key;
@@ -86,6 +88,8 @@ int lws_sync_reply_handle(const unsigned char *data, const size_t len, SyncResul
 size_t lws_send_tx_request(const char *address_hex, VchData *vch_data, unsigned char *data);
 int lws_send_tx_reply_handle(const unsigned char *data, const size_t len, SendTxResult *result);
 
+// New LWS protocol
+
 typedef big_num sha256_hash;
 
 typedef unsigned int (*HookNonceGet)(const void *ctx);
@@ -121,16 +125,19 @@ typedef struct {
 typedef struct _LWSProtocol LWSProtocol;
 
 typedef enum {
+    LWSPError_HookSHA256GET_NULL,
     LWSPError_HookForkGet_NULL,
     LWSPError_HookPublicKeyGet_NULL,
     LWSPError_HookNonceGet_NULL,
     LWSPError_Allocate_Fail,
     LWSPError_Hook_NULL,
     LWSPError_Protocol_NULL,
+    LWSPError_ID_Too_Long,
     LWSPError_Success = 0,
 } LWSPError;
 
-LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol *protocol);
+LWSPError protocol_new(const unsigned char *id, const unsigned char id_length, const LWSProtocolHook *hook,
+                       LWSProtocol *protocol);
 LWSPError protocol_reply_hash(LWSProtocol *protocol, const unsigned char *data, sha256_hash hash);
 LWSPError protocol_listunspent_request(LWSProtocol *protocol, sha256_hash hash, unsigned char *data, size_t *length);
 LWSPError protocol_sendtx_request(LWSProtocol *protocol, const char *address, const VchData *vch, unsigned char *data,
