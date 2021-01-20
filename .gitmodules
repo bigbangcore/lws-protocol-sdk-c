@@ -1,0 +1,6 @@
+[submodule "external_libs/crc"]
+	path = external_libs/crc
+	url = https://github.com/gityf/crc.git
+[submodule "external_libs/c-algorithms"]
+	path = external_libs/c-algorithms
+	url = https://github.com/fragglet/c-algorithms.git
