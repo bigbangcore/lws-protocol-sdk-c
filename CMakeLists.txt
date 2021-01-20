@@ -8,6 +8,6 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 14)
 
 # test 
-set(test_src test.c lws_protocol.c lws_protocol.h)
+set(test_src test.c lws_protocol.c lws_protocol.h crc32.c crc32.h)
 add_executable(lwsp ${test_src})
-target_link_libraries(lwsp pthread)
+target_link_libraries(lwsp sodium)

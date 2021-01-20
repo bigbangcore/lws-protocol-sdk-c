@@ -1579,41 +1579,59 @@ int lws_send_tx_reply_handle(const unsigned char *data, const size_t len, SendTx
 //------------------------------------------------------------------------
 
 struct _LWSProtocol {
-    unsigned char id[256];
-    uint8_t id_length;
     uint32_t listunspent_index;
     uint32_t sendtx_index;
     LWSProtocolHook *hook;
 };
 
-LWSPError protocol_new(const unsigned char *id, const unsigned char id_length, const LWSProtocolHook *hook,
-                       LWSProtocol *protocol)
+LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol **protocol)
 {
-    if (id_length > 256) {
-        return LWSPError_ID_Too_Long;
-    }
-
     if (NULL == hook) {
         return LWSPError_Hook_NULL;
     }
 
-    protocol = malloc(sizeof(LWSProtocol));
-    if (NULL == protocol) {
+    if (NULL == hook->hook_id_get) {
+        return LWSPError_HookDevieIDGet_NULL;
+    }
+
+    if (NULL == hook->hook_nonce_get) {
+        return LWSPError_HookNonceGet_NULL;
+    }
+
+    if (NULL == hook->hook_public_key_get) {
+        return LWSPError_HookPublicKeyGet_NULL;
+    }
+
+    if (NULL == hook->hook_fork_get) {
+        return LWSPError_HookForkGet_NULL;
+    }
+
+    if (NULL == hook->hook_sha256_get) {
+        return LWSPError_HookSHA256GET_NULL;
+    }
+
+    unsigned char id[256];
+    int id_length = hook->hook_id_get(hook->hook_id_context, id);
+    if (256 < id_length || 0 == id_length) {
+        return LWSPError_ID_Length;
+    }
+
+    *protocol = malloc(sizeof(LWSProtocol));
+    if (NULL == *protocol) {
         return LWSPError_Allocate_Fail;
     }
 
-    memset(protocol, 0x00, sizeof(LWSProtocol));
-    memcpy(protocol->id, id, id_length);
-    protocol->id_length = id_length;
-    protocol->hook = malloc(sizeof(LWSProtocolHook));
-    if (NULL == protocol->hook) {
+    memset(*protocol, 0x00, sizeof(LWSProtocol));
+    (*protocol)->hook = malloc(sizeof(LWSProtocolHook));
+    if (NULL == (*protocol)->hook) {
+        free(*protocol);
+        *protocol = NULL;
         return LWSPError_Allocate_Fail;
     }
 
-    memset(protocol->hook, 0x00, sizeof(LWSProtocolHook));
-    memcpy(protocol->hook, hook, sizeof(LWSProtocolHook));
-    protocol->listunspent_index = 0;
-    protocol->sendtx_index = 0;
+    memcpy((*protocol)->hook, hook, sizeof(LWSProtocolHook));
+    (*protocol)->listunspent_index = 0;
+    (*protocol)->sendtx_index = 0;
 
     return LWSPError_Success;
 }
@@ -1632,12 +1650,6 @@ static int check_endian()
     return (*p == 1); /*1:little-endian, 0:big-endian*/
 }
 
-static int reverse_listunspent_endian(void *data, size_t len) { return 0; }
-
-static int reverse_sendtx_endian(void *data, size_t len) { return 0; }
-
-static int reverse_tx_endian(void *data, size_t len) { return 0; }
-
 enum Command { ListUnspent = 0x0011, SendTx = 0x0012 };
 
 struct RequestHead {
@@ -1647,35 +1659,27 @@ struct RequestHead {
     unsigned char hash[32];
 };
 
-static int request_head_to_big_endian(struct RequestHead *head) { return 0; }
-
-static int request_foot_to_big_endian(uint32_t *foot) { return 0; }
-
-static LWSPError inner_wrap_request(LWSProtocol *protocol, const uint16_t command, const unsigned char *data,
-                                    const size_t len, sha256_hash hash)
+static LWSPError wrap_request(LWSProtocol *protocol, const unsigned char *data, const size_t data_len, sha256_hash hash,
+                              unsigned char *request, size_t *length)
 {
     struct RequestHead head;
     head.version = VERSION;
-    head.length = protocol->id_length;
     unsigned char device_id[256];
-    memcpy(device_id, protocol->id, protocol->id_length);
+    head.length = protocol->hook->hook_id_get(protocol->hook->hook_id_context, device_id);
     head.id = device_id;
     memcpy(head.hash, hash, 32);
     uint32_t foot = 0;
 
-    if (1 == check_endian()) {
-        request_head_to_big_endian(&head);
-        request_foot_to_big_endian(&foot);
-    }
+    size_t len = 2 + 1 + head.length + 32 + data_len + 4;
+    memcpy(request, &head.version, 2);
+    memcpy(&request[2], &head.length, 1);
+    memcpy(&request[3], head.id, head.length);
+    memcpy(&request[3 + head.length], hash, 32);
+    memcpy(&request[3 + head.length + 32], data, data_len);
 
-    return LWSPError_Success;
-}
-
-static LWSPError listunspent_request_endian_process(struct ListUnspentRequest *request)
-{
-    if (0 == check_endian()) {
-        return LWSPError_Success; // big endian
-    }
+    foot = protocol->hook->hook_crc32_get(protocol->hook->hook_fork_context, request, len - 4);
+    memcpy(&request[3 + head.length + 32 + data_len], &foot, 4);
+    *length = len;
 
     return LWSPError_Success;
 }
@@ -1688,36 +1692,23 @@ LWSPError protocol_listunspent_request(LWSProtocol *protocol, sha256_hash hash, 
         return LWSPError_Protocol_NULL;
     }
 
+    if (NULL == protocol->hook) {
+        return LWSPError_Hook_NULL;
+    }
+
     struct ListUnspentRequest request;
-    if (NULL != protocol->hook->hook_nonce_get) {
-        request.nonce = protocol->hook->hook_nonce_get(protocol->hook->hook_nonce_context);
-    } else {
-        return LWSPError_HookNonceGet_NULL;
-    }
+    request.nonce = protocol->hook->hook_nonce_get(protocol->hook->hook_nonce_context);
+    protocol->hook->hook_public_key_get(protocol->hook->hook_public_key_context, request.address);
+    protocol->hook->hook_fork_get(protocol->hook->hook_fork_context, request.fork_id);
 
-    if (NULL != protocol->hook->hook_public_key_get) {
-        protocol->hook->hook_public_key_get(protocol->hook->hook_public_key_context, request.address);
-    } else {
-        return LWSPError_HookPublicKeyGet_NULL;
-    }
-
-    if (NULL != protocol->hook->hook_fork_get) {
-        protocol->hook->hook_fork_get(protocol->hook->hook_fork_context, request.fork_id);
-    } else {
-        return LWSPError_HookForkGet_NULL;
-    }
-
-    listunspent_request_endian_process(&request); 
-
-    const size_t body_len = sizeof(struct ListUnspentRequest);
+    size_t body_len = 4 + 33 + 32 + 2;
     unsigned char body[body_len];
-    memcpy(body, &request, body_len);
-    if (NULL != protocol->hook->hook_sha256_get) {
-        protocol->hook->hook_sha256_get(protocol->hook->hook_sha256_context, body, body_len, hash);
-    } else {
-        return LWSPError_HookSHA256GET_NULL;
-    }
+    uint16_t command = ListUnspent;
+    memcpy(body, &command, 2);
+    memcpy(&body[2], &request, body_len - 2);
+    protocol->hook->hook_sha256_get(protocol->hook->hook_sha256_context, body, body_len, hash);
 
+    wrap_request(protocol, body, body_len, hash, data, length);
     protocol->listunspent_index++;
 
     return LWSPError_Success;
