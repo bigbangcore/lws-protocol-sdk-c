@@ -17,6 +17,7 @@ include_directories("external_libs/crc/crc/")
 
 # main
 set(src main.c lws_protocol.c lws_protocol.h)
+set(src ${src} ${CAlgorithms_SRC})
 set(src ${src} ${Crc_SRC})
 add_executable(lwsp ${src})
 target_link_libraries(lwsp pthread sodium mosquitto)

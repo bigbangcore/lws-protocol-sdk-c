@@ -4,3 +4,6 @@
 [submodule "external_libs/c-algorithms"]
 	path = external_libs/c-algorithms
 	url = https://github.com/fragglet/c-algorithms.git
+[submodule "external_libs/log.c"]
+	path = external_libs/log.c
+	url = https://github.com/rxi/log.c.git
