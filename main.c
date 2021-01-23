@@ -98,11 +98,11 @@ static int message_receiver(LWSProtocol *protocol, const unsigned char *data, co
     memset(&buff.buff, 0x00, 1024);
     memset(&buff.hash, 0x00, 32);
 
-    if (ListUnspent == info.command) {
+    if (0 == info.error && ListUnspent == info.command) {
         error = protocol_listunspent_reply_handle(protocol, data, length);
     }
 
-    if (SendTx == info.command) {
+    if (0 == info.error && SendTx == info.command) {
     }
     pthread_mutex_unlock(&buff.lock);
 

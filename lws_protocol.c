@@ -1744,11 +1744,32 @@ struct ListUnspentReply {
     struct UTXO utxo_list[];
 };
 
-static void reply_remove_head(const unsigned char *data, const size_t length, unsigned char *out) { return; }
+static LWSPError reply_remove_head(const unsigned char *data, const size_t length, unsigned char *body,
+                                   size_t *body_len)
+{
+    if (36 > length) {
+        return LWSPError_Reply_Too_Short; // 数据长度错误
+    }
+
+    if ((length - 36) > 0) {
+        memcpy(body, &data[36], length - 36);
+        *body_len = length - 36;
+    } else {
+        return LWSPError_Empty_Command_Body;
+    }
+
+    return LWSPError_Success;
+}
 
 LWSPError protocol_listunspent_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len)
 {
     struct ListUnspentReply reply;
+    unsigned char *out;
+    size_t out_len = 0;
+    LWSPError error = reply_remove_head(data, len, out, &out_len);
+    if (LWSPError_Success == error && 0 < out_len) {
+        memcpy(&reply, out, sizeof(struct ListUnspentReply));
+    }
 
     return LWSPError_Success;
 }

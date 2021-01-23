@@ -129,6 +129,7 @@ enum Command { ListUnspent = 0x0011, SendTx = 0x0012 };
 typedef struct _LWSProtocol LWSProtocol;
 
 typedef enum {
+    LWSPError_Empty_Command_Body,
     LWSPError_Reply_Too_Short,
     LWSPError_HookSHA256GET_NULL,
     LWSPError_HookForkGet_NULL,
