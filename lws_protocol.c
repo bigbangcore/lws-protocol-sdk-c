@@ -4,174 +4,174 @@
 #include <string.h>
 #include "lws_protocol.h"
 
-// typedef void *ArrayListValue;
-// typedef struct _ArrayList ArrayList;
+// ArrayList used c-algorithms--https://fragglet.github.io/c-algorithms/doc/arraylist_8h.html
 
-// struct _ArrayList {
-//     ArrayListValue *data;
-//     unsigned int length;
-//     unsigned int _alloced;
-// };
+typedef void *ArrayListValue;
+typedef struct _ArrayList ArrayList;
 
-// typedef int (*ArrayListEqualFunc)(ArrayListValue value1, ArrayListValue value2);
-// typedef int (*ArrayListCompareFunc)(ArrayListValue value1, ArrayListValue value2);
+struct _ArrayList {
+    ArrayListValue *data;
+    unsigned int length;
+    unsigned int _alloced;
+};
 
-// static ArrayList *arraylist_new(unsigned int length)
-// {
-//     ArrayList *new_arraylist;
+typedef int (*ArrayListEqualFunc)(ArrayListValue value1, ArrayListValue value2);
+typedef int (*ArrayListCompareFunc)(ArrayListValue value1, ArrayListValue value2);
 
-//     if (length <= 0) {
-//         length = 16;
-//     }
+static ArrayList *arraylist_new(unsigned int length)
+{
+    ArrayList *new_arraylist;
 
-//     new_arraylist = (ArrayList *)malloc(sizeof(ArrayList));
+    if (length <= 0) {
+        length = 16;
+    }
 
-//     if (new_arraylist == NULL) {
-//         return NULL;
-//     }
+    new_arraylist = (ArrayList *)malloc(sizeof(ArrayList));
 
-//     new_arraylist->_alloced = length;
-//     new_arraylist->length = 0;
+    if (new_arraylist == NULL) {
+        return NULL;
+    }
 
-//     new_arraylist->data = malloc(length * sizeof(ArrayListValue));
+    new_arraylist->_alloced = length;
+    new_arraylist->length = 0;
 
-//     if (new_arraylist->data == NULL) {
-//         free(new_arraylist);
-//         return NULL;
-//     }
+    new_arraylist->data = malloc(length * sizeof(ArrayListValue));
 
-//     return new_arraylist;
-// }
+    if (new_arraylist->data == NULL) {
+        free(new_arraylist);
+        return NULL;
+    }
 
-// static void arraylist_free(ArrayList *arraylist)
-// {
-//     if (arraylist != NULL) {
-//         free(arraylist->data);
-//         free(arraylist);
-//     }
-// }
+    return new_arraylist;
+}
 
-// static int arraylist_enlarge(ArrayList *arraylist)
-// {
-//     ArrayListValue *data;
-//     unsigned int newsize;
+static void arraylist_free(ArrayList *arraylist)
+{
+    if (arraylist != NULL) {
+        free(arraylist->data);
+        free(arraylist);
+    }
+}
 
-//     newsize = arraylist->_alloced * 2;
+static int arraylist_enlarge(ArrayList *arraylist)
+{
+    ArrayListValue *data;
+    unsigned int newsize;
 
-//     data = realloc(arraylist->data, sizeof(ArrayListValue) * newsize);
+    newsize = arraylist->_alloced * 2;
 
-//     if (data == NULL) {
-//         return 0;
-//     } else {
-//         arraylist->data = data;
-//         arraylist->_alloced = newsize;
+    data = realloc(arraylist->data, sizeof(ArrayListValue) * newsize);
 
-//         return 1;
-//     }
-// }
+    if (data == NULL) {
+        return 0;
+    } else {
+        arraylist->data = data;
+        arraylist->_alloced = newsize;
 
-// static int arraylist_insert(ArrayList *arraylist, unsigned int index, ArrayListValue data)
-// {
-//     if (index > arraylist->length) {
-//         return 0;
-//     }
+        return 1;
+    }
+}
 
-//     if (arraylist->length + 1 > arraylist->_alloced) {
-//         if (!arraylist_enlarge(arraylist)) {
-//             return 0;
-//         }
-//     }
+static int arraylist_insert(ArrayList *arraylist, unsigned int index, ArrayListValue data)
+{
+    if (index > arraylist->length) {
+        return 0;
+    }
 
-//     memmove(&arraylist->data[index + 1], &arraylist->data[index], (arraylist->length - index) *
-//     sizeof(ArrayListValue));
+    if (arraylist->length + 1 > arraylist->_alloced) {
+        if (!arraylist_enlarge(arraylist)) {
+            return 0;
+        }
+    }
 
-//     arraylist->data[index] = data;
-//     ++arraylist->length;
+    memmove(&arraylist->data[index + 1], &arraylist->data[index], (arraylist->length - index) * sizeof(ArrayListValue));
 
-//     return 1;
-// }
+    arraylist->data[index] = data;
+    ++arraylist->length;
 
-// static int arraylist_append(ArrayList *arraylist, ArrayListValue data)
-// {
-//     return arraylist_insert(arraylist, arraylist->length, data);
-// }
+    return 1;
+}
 
-// // static int arraylist_prepend(ArrayList *arraylist, ArrayListValue data) { return arraylist_insert(arraylist, 0,
-// // data); }
+static int arraylist_append(ArrayList *arraylist, ArrayListValue data)
+{
+    return arraylist_insert(arraylist, arraylist->length, data);
+}
 
-// static void arraylist_remove_range(ArrayList *arraylist, unsigned int index, unsigned int length)
-// {
-//     if (index > arraylist->length || index + length > arraylist->length) {
-//         return;
-//     }
+// static int arraylist_prepend(ArrayList *arraylist, ArrayListValue data) { return arraylist_insert(arraylist, 0,
+// data); }
 
-//     memmove(&arraylist->data[index], &arraylist->data[index + length],
-//             (arraylist->length - (index + length)) * sizeof(ArrayListValue));
+static void arraylist_remove_range(ArrayList *arraylist, unsigned int index, unsigned int length)
+{
+    if (index > arraylist->length || index + length > arraylist->length) {
+        return;
+    }
 
-//     arraylist->length -= length;
-// }
+    memmove(&arraylist->data[index], &arraylist->data[index + length],
+            (arraylist->length - (index + length)) * sizeof(ArrayListValue));
 
-// static void arraylist_remove(ArrayList *arraylist, unsigned int index) { arraylist_remove_range(arraylist, index, 1);
-// }
+    arraylist->length -= length;
+}
 
-// static int arraylist_index_of(ArrayList *arraylist, ArrayListEqualFunc callback, ArrayListValue data)
-// {
-//     unsigned int i;
+static void arraylist_remove(ArrayList *arraylist, unsigned int index) { arraylist_remove_range(arraylist, index, 1); }
 
-//     for (i = 0; i < arraylist->length; ++i) {
-//         if (callback(arraylist->data[i], data) != 0)
-//             return (int)i;
-//     }
+static int arraylist_index_of(ArrayList *arraylist, ArrayListEqualFunc callback, ArrayListValue data)
+{
+    unsigned int i;
 
-//     return -1;
-// }
+    for (i = 0; i < arraylist->length; ++i) {
+        if (callback(arraylist->data[i], data) != 0)
+            return (int)i;
+    }
 
-// static void arraylist_clear(ArrayList *arraylist) { arraylist->length = 0; }
+    return -1;
+}
 
-// static void arraylist_sort_internal(ArrayListValue *list_data, unsigned int list_length,
-//                                     ArrayListCompareFunc compare_func)
-// {
-//     ArrayListValue pivot;
-//     ArrayListValue tmp;
-//     unsigned int i;
-//     unsigned int list1_length;
-//     unsigned int list2_length;
+static void arraylist_clear(ArrayList *arraylist) { arraylist->length = 0; }
 
-//     if (list_length <= 1) {
-//         return;
-//     }
+static void arraylist_sort_internal(ArrayListValue *list_data, unsigned int list_length,
+                                    ArrayListCompareFunc compare_func)
+{
+    ArrayListValue pivot;
+    ArrayListValue tmp;
+    unsigned int i;
+    unsigned int list1_length;
+    unsigned int list2_length;
 
-//     pivot = list_data[list_length - 1];
+    if (list_length <= 1) {
+        return;
+    }
 
-//     list1_length = 0;
+    pivot = list_data[list_length - 1];
 
-//     for (i = 0; i < list_length - 1; ++i) {
+    list1_length = 0;
 
-//         if (compare_func(list_data[i], pivot) < 0) {
-//             tmp = list_data[i];
-//             list_data[i] = list_data[list1_length];
-//             list_data[list1_length] = tmp;
+    for (i = 0; i < list_length - 1; ++i) {
 
-//             ++list1_length;
+        if (compare_func(list_data[i], pivot) < 0) {
+            tmp = list_data[i];
+            list_data[i] = list_data[list1_length];
+            list_data[list1_length] = tmp;
 
-//         } else {
-//         }
-//     }
+            ++list1_length;
 
-//     list2_length = list_length - list1_length - 1;
+        } else {
+        }
+    }
 
-//     list_data[list_length - 1] = list_data[list1_length];
-//     list_data[list1_length] = pivot;
+    list2_length = list_length - list1_length - 1;
 
-//     arraylist_sort_internal(list_data, list1_length, compare_func);
+    list_data[list_length - 1] = list_data[list1_length];
+    list_data[list1_length] = pivot;
 
-//     arraylist_sort_internal(&list_data[list1_length + 1], list2_length, compare_func);
-// }
+    arraylist_sort_internal(list_data, list1_length, compare_func);
 
-// static void arraylist_sort(ArrayList *arraylist, ArrayListCompareFunc compare_func)
-// {
-//     arraylist_sort_internal(arraylist->data, arraylist->length, compare_func);
-// }
+    arraylist_sort_internal(&list_data[list1_length + 1], list2_length, compare_func);
+}
+
+static void arraylist_sort(ArrayList *arraylist, ArrayListCompareFunc compare_func)
+{
+    arraylist_sort_internal(arraylist->data, arraylist->length, compare_func);
+}
 
 // /// sdk全局变量
 // static struct {
@@ -210,24 +210,24 @@
 //     uint32_t last_block_time;
 // } G;
 
-// /// 交易结构体
-// typedef struct {
-//     uint16_t version;
-//     uint16_t type;
-//     uint32_t timestamp;
-//     uint32_t lock_until;
-//     unsigned char hash_anchor[32];
-//     uint8_t size0;
-//     unsigned char *input;
-//     uint8_t prefix;
-//     unsigned char address[32];
-//     uint64_t amount;
-//     uint64_t tx_fee;
-//     uint8_t size1;
-//     unsigned char *vch_data;
-//     uint8_t size2;
-//     unsigned char sign[64];
-// } Transaction;
+/// 交易结构体
+typedef struct {
+    uint16_t version;
+    uint16_t type;
+    uint32_t timestamp;
+    uint32_t lock_until;
+    unsigned char hash_anchor[32];
+    uint8_t size0;
+    unsigned char *input;
+    uint8_t prefix;
+    unsigned char address[32];
+    uint64_t amount;
+    uint64_t tx_fee;
+    uint8_t size1;
+    unsigned char *vch_data;
+    uint8_t size2;
+    unsigned char sign[64];
+} Transaction;
 
 // /// 客户端验证请求结构体
 // struct ServiceReq {
@@ -339,101 +339,71 @@
 //     char *err_desc;
 // };
 
-// /**
-//  * @brief  hex2char
-//  * Convert hex to unsigned char array(bytes)
-//  *
-//  *
-//  * @author gaochun
-//  * @email  gaochun@dabank.io
-//  * @date   2019/11/18 17:0:47
-//  * @param  char *           hex -input hex string
-//  * @param  unsigned char *  bin -output unsigned char array
-//  * @return static size_t
-//  */
-// static size_t hex_to_uchar(const char *hex, unsigned char *bin)
-// {
-//     size_t len = strlen(hex);
-//     size_t final_len = len / 2;
-//     size_t i, j;
-//     for (i = 0, j = 0; j < final_len; i += 2, j++) {
-//         bin[j] = (unsigned char)((hex[i] % 32 + 9) % 25 * 16 + (hex[i + 1] % 32 + 9) % 25);
-//     }
+/**
+ * @brief  hex2char
+ * Convert hex to unsigned char array(bytes)
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2019/11/18 17:0:47
+ * @param  char *           hex -input hex string
+ * @param  unsigned char *  bin -output unsigned char array
+ * @return static size_t
+ */
+static size_t hex_to_uchar(const char *hex, unsigned char *bin)
+{
+    size_t len = strlen(hex);
+    size_t final_len = len / 2;
+    size_t i, j;
+    for (i = 0, j = 0; j < final_len; i += 2, j++) {
+        bin[j] = (unsigned char)((hex[i] % 32 + 9) % 25 * 16 + (hex[i + 1] % 32 + 9) % 25);
+    }
 
-//     return final_len;
-// }
+    return final_len;
+}
 
-// /**
-//  * @brief  uchar_to_hex
-//  * binary stream to hex string
-//  *
-//  *
-//  * @author gaochun
-//  * @email  gaochun@dabank.io
-//  * @date   2020/9/11 1:8:43
-//  * @param  const unsigned char * bin
-//  * @param  const size_t     size
-//  * @param  char *           hex
-//  * @return static size_t
-//  */
-// // static size_t uchar_to_hex(const unsigned char *bin, const size_t size, char *hex)
-// // {
-// //     const char symbol[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-// //     for (int i = 0; i < size; i++) {
-// //         unsigned char c = *((unsigned char *)(bin + sizeof(unsigned char) * i));
-// //         unsigned char hex_l = c & 0x0f;
-// //         unsigned char hex_h = (c >> 4);
-// //         *hex = symbol[hex_h];
-// //         *(hex + 1) = symbol[hex_l];
-// //         hex += 2;
-// //     }
+/**
+ * @brief  reverse
+ * reverse the unisgned char array
+ *
+ *
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2020/9/11 11:8:51
+ * @param  unsigned char *  p
+ * @param  int              size
+ * @return  void
+ */
+static void reverse(unsigned char *p, int size)
+{
+    int i;
+    unsigned char tmp;
+    for (i = 0; i < size / 2; i++) {
+        tmp = p[i];
+        p[i] = p[size - 1 - i];
+        p[size - 1 - i] = tmp;
+    }
+}
 
-// //     return 2 * size;
-// // }
+static int big_num_compare(big_num data1, big_num data2)
+{
+    int i;
+    for (i = 31; i >= 0; i--) {
+        // printf("%d, data1:%u, data2:%u\n", i, data1->pn[i], data2->pn[i]);
+        if (data1[i] > data2[i]) {
+            return 1;
+        }
 
-// /**
-//  * @brief  reverse
-//  * reverse the unisgned char array
-//  *
-//  *
-//  * @author gaochun
-//  * @email  gaochun@dabank.io
-//  * @date   2020/9/11 11:8:51
-//  * @param  unsigned char *  p
-//  * @param  int              size
-//  * @return  void
-//  */
-// static void reverse(unsigned char *p, int size)
-// {
-//     int i;
-//     unsigned char tmp;
-//     for (i = 0; i < size / 2; i++) {
-//         tmp = p[i];
-//         p[i] = p[size - 1 - i];
-//         p[size - 1 - i] = tmp;
-//     }
-// }
+        if (data1[i] == data2[i]) {
+            continue;
+        }
 
-// static int big_num_compare(big_num data1, big_num data2)
-// {
-//     int i;
-//     for (i = 31; i >= 0; i--) {
-//         // printf("%d, data1:%u, data2:%u\n", i, data1->pn[i], data2->pn[i]);
-//         if (data1[i] > data2[i]) {
-//             return 1;
-//         }
+        if (data1[i] < data2[i]) {
+            return -1;
+        }
+    }
 
-//         if (data1[i] == data2[i]) {
-//             continue;
-//         }
-
-//         if (data1[i] < data2[i]) {
-//             return -1;
-//         }
-//     }
-
-//     return 0;
-// }
+    return 0;
+}
 
 // int hook_nonce_get(const NonceGet callback, void *ctx)
 // {
@@ -492,48 +462,48 @@
 //     return 0;
 // }
 
-// /**
-//  * @brief  serialize_join
-//  * serialize unsigned char array
-//  *
-//  *
-//  * @author gaochun
-//  * @email  gaochun@dabank.io
-//  * @date   2019/8/7 17:4:50
-//  * @param  size_t *         size -i/o array len，first call set to zero
-//  * @param  void *           thing -void ptr for something that need to be serialized
-//  * @param  size_t           size_thing -length of things that need to be serialized(byte size)
-//  * @param  unsigned char *  data -output series
-//  * @return static size_t -size
-//  */
-// static size_t serialize_join(size_t *size, void *thing, size_t size_thing, unsigned char *data)
-// {
-//     memcpy(data + *size, thing, size_thing);
-//     *size += size_thing;
-//     return *size;
-// }
+/**
+ * @brief  serialize_join
+ * serialize unsigned char array
+ *
+ *
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2019/8/7 17:4:50
+ * @param  size_t *         size -i/o array len，first call set to zero
+ * @param  void *           thing -void ptr for something that need to be serialized
+ * @param  size_t           size_thing -length of things that need to be serialized(byte size)
+ * @param  unsigned char *  data -output series
+ * @return static size_t -size
+ */
+static size_t serialize_join(size_t *size, void *thing, size_t size_thing, unsigned char *data)
+{
+    memcpy(data + *size, thing, size_thing);
+    *size += size_thing;
+    return *size;
+}
 
-// /**
-//  * @brief  deserialize_join
-//  * Deserialize to struct case
-//  *
-//  *
-//  * @author gaochun
-//  * @email  gaochun@dabank.io
-//  * @date   2019/8/19 21:20:28
-//  * @param  size_t *         size -byte length counter
-//  * @param  unsigned char *  data -data series
-//  * @param  void *           thing -struct case ptr
-//  * @param  size_t           size_thing -something that need tobe deserialized
-//  * @return static size_t -size
-//  */
-// static size_t deserialize_join(size_t *size, const unsigned char *data, void *thing, size_t size_thing)
-// {
-//     memcpy(thing, data + *size, size_thing);
-//     *size += size_thing;
+/**
+ * @brief  deserialize_join
+ * Deserialize to struct case
+ *
+ *
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2019/8/19 21:20:28
+ * @param  size_t *         size -byte length counter
+ * @param  unsigned char *  data -data series
+ * @param  void *           thing -struct case ptr
+ * @param  size_t           size_thing -something that need tobe deserialized
+ * @return static size_t -size
+ */
+static size_t deserialize_join(size_t *size, const unsigned char *data, void *thing, size_t size_thing)
+{
+    memcpy(thing, data + *size, size_thing);
+    *size += size_thing;
 
-//     return *size;
-// }
+    return *size;
+}
 
 // /**
 //  * @brief  equal_utxo
@@ -1580,21 +1550,14 @@
 
 //------------------------------------------------------------------------
 
-static void reverse(unsigned char *p, int size)
-{
-    int i;
-    unsigned char tmp;
-    for (i = 0; i < size / 2; i++) {
-        tmp = p[i];
-        p[i] = p[size - 1 - i];
-        p[size - 1 - i] = tmp;
-    }
-}
-
 struct _LWSProtocol {
     uint32_t listunspent_index;
     uint32_t sendtx_index;
     LWSProtocolHook *hook;
+    ArrayList *utxo_list;
+    unsigned char last_block_hash[32];
+    uint32_t last_block_height;
+    uint32_t last_block_time;
 };
 
 LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol **protocol)
@@ -1735,14 +1698,67 @@ struct UTXO {
     unsigned char *data;
 };
 
-struct ListUnspentReply {
+struct ListUnspentBody {
+    uint16_t command;
     uint32_t nonce;
     unsigned char block_hash[32];
     uint32_t block_height;
     uint32_t block_time;
     uint16_t utxo_number;
-    struct UTXO utxo_list[];
+    ArrayList *utxo_list;
 };
+
+/**
+ * @brief  compare_utxo
+ * Compare v1(UTXO) and v2(UTXO)
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2019/11/18 17:50:58
+ * @param  ArrayListValue   v1 -input UTXO instance
+ * @param  ArrayListValue   v2 -input UTXO instance
+ * @return static int --if equal return 0, v1 greater then v2 return 1, else return -1
+ */
+static int compare_utxo(ArrayListValue v1, ArrayListValue v2)
+{
+    struct UTXO *utxo1 = (struct UTXO *)v1;
+    struct UTXO *utxo2 = (struct UTXO *)v2;
+
+    big_num txid1, txid2;
+    memcpy(txid1, utxo1->txid, 32);
+    memcpy(txid2, utxo2->txid, 32);
+
+    int ret = big_num_compare(txid1, txid2);
+
+    // sort rule--ArrayListCompareFunc
+    // https://fragglet.github.io/c-algorithms/doc/arraylist_8h.html
+
+    // utxo == utxo2
+    if (0 == ret) {
+        if (utxo1->out == utxo2->out) {
+            return 0;
+        }
+
+        if (utxo1->out > utxo2->out) {
+            return 1;
+        }
+
+        if (utxo1->out < utxo2->out) {
+            return -1;
+        }
+    }
+
+    // utxo1 > utxo2
+    if (1 == ret) {
+        return 1;
+    }
+
+    // utxo1 < utxo2
+    if (-1 == ret) {
+        return -1;
+    }
+
+    return -1;
+}
 
 static LWSPError reply_remove_head(const unsigned char *data, const size_t length, unsigned char *body,
                                    size_t *body_len)
@@ -1761,14 +1777,119 @@ static LWSPError reply_remove_head(const unsigned char *data, const size_t lengt
     return LWSPError_Success;
 }
 
+static struct ListUnspentBody listunspent_body_deserialize(const unsigned char *data)
+{
+    struct ListUnspentBody body;
+    body.utxo_list = arraylist_new(0);
+    size_t size = 0;
+    size_t size_thing = sizeof(body.command);
+    deserialize_join(&size, data, &body.command, size_thing);
+
+    size_thing = sizeof(body.nonce);
+    deserialize_join(&size, data, &body.nonce, size_thing);
+
+    size_thing = sizeof(body.block_hash);
+    deserialize_join(&size, data, body.block_hash, size_thing);
+
+    size_thing = sizeof(body.block_height);
+    deserialize_join(&size, data, &body.block_height, size_thing);
+
+    size_thing = sizeof(body.block_time);
+    deserialize_join(&size, data, &body.block_time, size_thing);
+
+    size_thing = sizeof(body.utxo_number);
+    deserialize_join(&size, data, &body.utxo_number, size_thing);
+
+    // 端序转换
+    reverse((unsigned char *)&body.nonce, 4);
+    reverse((unsigned char *)&body.block_height, 4);
+    reverse((unsigned char *)&body.block_time, 4);
+    reverse((unsigned char *)&body.utxo_number, 2);
+
+    // UTXOList
+    int i;
+    for (i = 0; i < body.utxo_number; i++) {
+        struct UTXO *utxo = (struct UTXO *)malloc(sizeof(struct UTXO));
+
+        size_thing = sizeof(utxo->txid);
+        deserialize_join(&size, data, utxo->txid, size_thing);
+
+        size_thing = sizeof(utxo->out);
+        deserialize_join(&size, data, &utxo->out, size_thing);
+
+        size_thing = sizeof(utxo->block_height);
+        deserialize_join(&size, data, &utxo->block_height, size_thing);
+
+        size_thing = sizeof(utxo->type);
+        deserialize_join(&size, data, &utxo->type, size_thing);
+
+        size_thing = sizeof(utxo->amount);
+        deserialize_join(&size, data, &utxo->amount, size_thing);
+
+        size_thing = sizeof(utxo->sender);
+        deserialize_join(&size, data, utxo->sender, size_thing);
+
+        size_thing = sizeof(utxo->lock_until);
+        deserialize_join(&size, data, &utxo->lock_until, size_thing);
+
+        size_thing = sizeof(utxo->data_size);
+        deserialize_join(&size, data, &utxo->data_size, size_thing);
+
+        size_thing = utxo->data_size;
+        unsigned char *d = (unsigned char *)malloc(sizeof(unsigned char) * size_thing);
+        deserialize_join(&size, data, d, size_thing);
+
+        utxo->data = d;
+
+        // 端序转换
+        reverse((unsigned char *)&utxo->out, 1);
+        reverse((unsigned char *)&utxo->block_height, 4);
+        reverse((unsigned char *)&utxo->type, 2);
+        reverse((unsigned char *)&utxo->amount, 8);
+        reverse((unsigned char *)&utxo->lock_until, 4);
+        reverse((unsigned char *)&utxo->data_size, 2);
+
+        arraylist_append(body.utxo_list, utxo);
+    }
+
+    return body;
+}
+
 LWSPError protocol_listunspent_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len)
 {
-    struct ListUnspentReply reply;
-    unsigned char *out;
+    unsigned char out[len];
     size_t out_len = 0;
     LWSPError error = reply_remove_head(data, len, out, &out_len);
-    if (LWSPError_Success == error && 0 < out_len) {
-        memcpy(&reply, out, sizeof(struct ListUnspentReply));
+    if (LWSPError_Success == error) {
+        struct ListUnspentBody body = listunspent_body_deserialize(out);
+
+        // 全局状态
+        memcpy(protocol->last_block_hash, body.block_hash, 32);
+        protocol->last_block_height = body.block_height;
+        protocol->last_block_time = body.block_time;
+
+        // clear globle utxo list
+        int i, len = protocol->utxo_list->length;
+        for (i = 0; i < len; i++) {
+            struct UTXO *utxo = (struct UTXO *)protocol->utxo_list->data[i];
+            if (!utxo && !utxo->data) {
+                free(utxo->data);
+                free(utxo);
+            }
+        }
+        arraylist_clear(protocol->utxo_list);
+
+        len = body.utxo_list->length;
+        for (i = 0; i < len; i++) {
+            struct UTXO *utxo = (struct UTXO *)body.utxo_list->data[i];
+            arraylist_append(protocol->utxo_list, utxo);
+        }
+
+        arraylist_sort(protocol->utxo_list, compare_utxo);
+        arraylist_clear(body.utxo_list);
+        arraylist_free(body.utxo_list);
+    } else {
+        return error;
     }
 
     return LWSPError_Success;
@@ -1785,6 +1906,260 @@ LWSPError protocol_reply_info(LWSProtocol *protocol, const unsigned char *data, 
     reverse((unsigned char *)&info->version, 2);
     reverse((unsigned char *)&info->error, 2);
     reverse((unsigned char *)&info->command, 2);
+
+    return LWSPError_Success;
+}
+
+/**
+ * @brief  calc_tx_fee
+ * calc min transaction fee
+ * @author shang
+ * @email  shang_qd@qq.com
+ * @date   2020/5/19 20:00
+ * @param  nVchData *    vchdata size
+ * @return static size_t -return vchdata fee
+ */
+static size_t calc_tx_fee(size_t nVchData)
+{
+    size_t nMinFee = 10000;
+    if (0 == nVchData) {
+        return nMinFee;
+    }
+    uint32_t multiplier = nVchData / 200;
+    if (nVchData % 200 > 0) {
+        multiplier++;
+    }
+    if (multiplier > 5) {
+        return nMinFee + nMinFee * 10 + (multiplier - 5) * nMinFee * 4;
+    } else {
+        return nMinFee + multiplier * nMinFee * 2;
+    }
+}
+
+static Transaction *transaction_new(LWSProtocol *protocol, const unsigned char *address, const VchData *vch_data)
+{
+    size_t list_len = protocol->utxo_list->length;
+    struct UTXO *utxo = NULL;
+    struct UTXO *utxo2 = NULL;
+
+    if (0 == list_len) {
+        return NULL;
+    }
+
+    utxo = (struct UTXO *)protocol->utxo_list->data[0];
+    if (2 >= list_len) {
+        utxo2 = (struct UTXO *)protocol->utxo_list->data[1];
+    }
+
+    if (NULL == utxo) {
+        arraylist_clear(protocol->utxo_list);
+        return NULL;
+    }
+
+    arraylist_remove(protocol->utxo_list, 0);
+    if (utxo2 != NULL) {
+        arraylist_remove(protocol->utxo_list, 1);
+    }
+
+    // VchData
+    size_t uuid_session_size = 16;
+    size_t timestamp_session_size = 4;
+    size_t description_session_size = vch_data->desc_size + 1;
+    size_t user_data_session_size = vch_data->len;
+
+    size_t vch_data_len =
+        uuid_session_size + timestamp_session_size + description_session_size + user_data_session_size;
+    size_t fee = calc_tx_fee(vch_data_len);
+    utxo->amount = utxo->amount - fee;
+    if (utxo2 != NULL) {
+        utxo->amount += utxo2->amount;
+    }
+
+    Transaction *tx = (Transaction *)malloc(sizeof(Transaction));
+    memset(tx, 0x00, sizeof(Transaction));
+    tx->version = 1;
+    tx->type = 0x00;
+
+    tx->timestamp = protocol->hook->hook_datetime_get(protocol->hook->hook_datetime_context);
+    tx->lock_until = 0;
+    // TODO: The protocol USES the hash of the previous block, but for now only forkid is used
+    // memcpy(tx->hash_anchor, G.last_block_hash, 32);
+    unsigned char fork[32];
+    protocol->hook->hook_fork_get(protocol->hook->hook_fork_context, fork);
+
+    memcpy(tx->hash_anchor, fork, 32);
+    reverse(tx->hash_anchor, 32);
+
+    tx->size0 = 1;
+    if (utxo2 != NULL) {
+        tx->size0 = 2;
+    }
+    int len = sizeof(unsigned char) * (32 + 1) * tx->size0;
+    unsigned char *input = (unsigned char *)malloc(len);
+    memcpy(input, utxo->txid, 32);
+    memcpy(input + 32, &utxo->out, 1);
+    if (utxo2 != NULL) {
+        memcpy(input + 33, utxo2->txid, 32);
+        memcpy(input + 65, &utxo2->out, 1);
+    }
+    tx->input = input;
+
+    tx->prefix = 1;
+
+    if (address) {
+        memcpy(tx->address, address, sizeof(tx->address));
+    }
+
+    tx->tx_fee = fee;
+    tx->amount = utxo->amount;
+    unsigned char *data = (unsigned char *)malloc(vch_data_len);
+
+    size_t size = 0;
+    size_t size_thing = sizeof(vch_data->uuid);
+    serialize_join(&size, (void *)vch_data->uuid, size_thing, data);
+
+    size_thing = sizeof(vch_data->timestamp);
+    serialize_join(&size, (void *)vch_data->timestamp, size_thing, data);
+
+    unsigned char uc8 = vch_data->desc_size;
+    serialize_join(&size, &uc8, 1, data);
+    if (uc8 > 0) {
+        size_thing = vch_data->desc_size;
+        serialize_join(&size, vch_data->desc, size_thing, data);
+    }
+
+    size_thing = vch_data->len;
+    serialize_join(&size, vch_data->data, size_thing, data);
+
+    tx->size1 = size;
+    tx->vch_data = data;
+
+    tx->size2 = 64;
+
+    return tx;
+}
+
+/**
+ * @brief  tx_serialize_without_sign
+ * Serialize Transaction to byte stream without sign
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2019/11/19 17:15:46
+ * @param  Transaction *    tx   -input transaction instance
+ * @param  unsigned char *  data -output byte stream
+ * @return static size_t -byte stream length
+ */
+static size_t transaction_serialize_without_sign(Transaction *tx, unsigned char *data)
+{
+    size_t size = 0;
+    size_t size_thing = sizeof(tx->version);
+    serialize_join(&size, &tx->version, size_thing, data);
+
+    size_thing = sizeof(tx->type);
+    serialize_join(&size, &tx->type, size_thing, data);
+
+    size_thing = sizeof(tx->timestamp);
+    serialize_join(&size, &tx->timestamp, size_thing, data);
+
+    size_thing = sizeof(tx->lock_until);
+    serialize_join(&size, &tx->lock_until, size_thing, data);
+
+    size_thing = sizeof(tx->hash_anchor);
+    serialize_join(&size, tx->hash_anchor, size_thing, data);
+
+    size_thing = sizeof(tx->size0);
+    serialize_join(&size, &tx->size0, size_thing, data);
+
+    size_thing = (sizeof(unsigned char) * (32 + 1)) * tx->size0;
+    serialize_join(&size, tx->input, size_thing, data);
+
+    size_thing = sizeof(tx->prefix);
+    serialize_join(&size, &tx->prefix, size_thing, data);
+
+    size_thing = sizeof(tx->address);
+    serialize_join(&size, tx->address, size_thing, data);
+
+    size_thing = sizeof(tx->amount);
+    serialize_join(&size, &tx->amount, size_thing, data);
+
+    size_thing = sizeof(tx->tx_fee);
+    serialize_join(&size, &tx->tx_fee, size_thing, data);
+
+    size_thing = sizeof(tx->size1);
+    serialize_join(&size, &tx->size1, size_thing, data);
+
+    size_thing = tx->size1;
+    serialize_join(&size, tx->vch_data, size_thing, data);
+
+    return size;
+}
+
+/**
+ * @brief  lwsiot_sign_tx
+ * Signature transaction
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2019/11/19 17:17:39
+ * @param  LwsClient *      lws_client -LWS client
+ * @param  Transaction *    tx         -input transaction instance
+ * @return  LwsIoTError -return error code
+ */
+static int transaction_sign(LWSProtocol *protocol, Transaction *tx)
+{
+    unsigned char data[4096];
+    size_t size = transaction_serialize_without_sign(tx, data);
+    unsigned char sign[64] = {0};
+    protocol->hook->hook_public_sign_ed25519(protocol->hook->hook_public_sign_ed25519_context, data, size, sign);
+    memcpy(tx->sign, sign, tx->size2);
+
+    return 0;
+}
+
+/**
+ * @brief  tx_serialize
+ * Serialize transaction with signature
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2019/11/19 17:19:13
+ * @param  Transaction *    tx   -transaction instance
+ * @param  unsigned char *  data -output byte stream
+ * @return static size_t -return byte stream length
+ */
+static size_t transaction_serialize(Transaction *tx, unsigned char *data)
+{
+    size_t size = transaction_serialize_without_sign(tx, data);
+
+    size_t size_thing = sizeof(tx->size2);
+    serialize_join(&size, &tx->size2, size_thing, data);
+
+    size_thing = tx->size2;
+    serialize_join(&size, tx->sign, size_thing, data);
+
+    return size;
+}
+
+LWSPError protocol_sendtx_request(LWSProtocol *protocol, const char *address, const VchData *vch, sha256_hash hash,
+                                  unsigned char *data, size_t length)
+{
+    // 1 创建Tx结构体
+    Transaction *tx = transaction_new(protocol, address, vch);
+    if (NULL == tx) {
+        return LWSPError_Create_Tx_Error;
+    }
+
+    // 2 签名
+    transaction_sign(protocol, tx);
+
+    // 3 序列化Tx
+    unsigned char tx_data[4096];
+    size_t tx_data_len = 0;
+    tx_data_len = transaction_serialize(tx, tx_data);
+    if (0 >= tx_data_len) {
+        return LWSPError_Serialize_Tx_Error;
+    }
+
+    // 4 创建send tx请求
+    // 5 序列化send tx请求
 
     return LWSPError_Success;
 }

@@ -129,6 +129,8 @@ enum Command { ListUnspent = 0x0011, SendTx = 0x0012 };
 typedef struct _LWSProtocol LWSProtocol;
 
 typedef enum {
+    LWSPError_Serialize_Tx_Error,
+    LWSPError_Create_Tx_Error,
     LWSPError_Empty_Command_Body,
     LWSPError_Reply_Too_Short,
     LWSPError_HookSHA256GET_NULL,
@@ -152,8 +154,8 @@ typedef struct {
 
 LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol **protocol);
 LWSPError protocol_listunspent_request(LWSProtocol *protocol, sha256_hash hash, unsigned char *data, size_t *length);
-LWSPError protocol_sendtx_request(LWSProtocol *protocol, const char *address, const VchData *vch, unsigned char *data,
-                                  sha256_hash hash);
+LWSPError protocol_sendtx_request(LWSProtocol *protocol, const char *address, const VchData *vch, sha256_hash hash,
+                                  unsigned char *data, size_t length);
 LWSPError protocol_reply_info(LWSProtocol *protocol, const unsigned char *data, const size_t length, ReplyInfo *info);
 LWSPError protocol_listunspent_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len);
 LWSPError protocol_sendtx_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len);
