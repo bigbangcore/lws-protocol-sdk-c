@@ -1608,6 +1608,7 @@ LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol **protocol)
     memcpy((*protocol)->hook, hook, sizeof(LWSProtocolHook));
     (*protocol)->listunspent_index = 0;
     (*protocol)->sendtx_index = 0;
+    (*protocol)->utxo_list = arraylist_new(0);
 
     return LWSPError_Success;
 }
@@ -1616,6 +1617,14 @@ struct ListUnspentRequest {
     uint32_t nonce;
     unsigned char address[33];
     unsigned char fork_id[32];
+};
+
+struct SendTxRequest {
+    uint32_t nonce;
+    unsigned char tx_id[32];
+    unsigned char fork_id[32];
+    uint16_t data_size;
+    unsigned char *tx_data;
 };
 
 static int check_endian()
@@ -1868,8 +1877,11 @@ LWSPError protocol_listunspent_reply_handle(LWSProtocol *protocol, const unsigne
         protocol->last_block_height = body.block_height;
         protocol->last_block_time = body.block_time;
 
+        // TODO:端序转化
+
         // clear globle utxo list
         int i, len = protocol->utxo_list->length;
+        // printf("utxo list length:%d\n", len);
         for (i = 0; i < len; i++) {
             struct UTXO *utxo = (struct UTXO *)protocol->utxo_list->data[i];
             if (!utxo && !utxo->data) {
@@ -2040,7 +2052,31 @@ static Transaction *transaction_new(LWSProtocol *protocol, const unsigned char *
 }
 
 /**
- * @brief  tx_serialize_without_sign
+ * @brief  transaction delete
+ * Destroy a transaction instance
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2019/11/19 17:30:47
+ * @param  LwsClient *      lws_client -LWS client
+ * @param  Transaction *    tx         -transaction instance
+ * @return  void
+ */
+static void transaction_delete(Transaction *tx)
+{
+    if (tx) {
+        if (tx->vch_data) {
+            free(tx->vch_data);
+        }
+
+        if (tx->input) {
+            free(tx->input);
+        }
+        free(tx);
+    }
+}
+
+/**
+ * @brief  transaction_serialize_without_sign
  * Serialize Transaction to byte stream without sign
  * @author gaochun
  * @email  gaochun@dabank.io
@@ -2094,8 +2130,15 @@ static size_t transaction_serialize_without_sign(Transaction *tx, unsigned char 
     return size;
 }
 
+static int transaction_hash(LWSProtocol *protocol, Transaction *tx, unsigned char *tx_id)
+{
+    unsigned char data[1024];
+    size_t size = transaction_serialize_without_sign(tx, data);
+    return 0;
+}
+
 /**
- * @brief  lwsiot_sign_tx
+ * @brief  transaction_sign
  * Signature transaction
  * @author gaochun
  * @email  gaochun@dabank.io
@@ -2106,7 +2149,7 @@ static size_t transaction_serialize_without_sign(Transaction *tx, unsigned char 
  */
 static int transaction_sign(LWSProtocol *protocol, Transaction *tx)
 {
-    unsigned char data[4096];
+    unsigned char data[1024];
     size_t size = transaction_serialize_without_sign(tx, data);
     unsigned char sign[64] = {0};
     protocol->hook->hook_public_sign_ed25519(protocol->hook->hook_public_sign_ed25519_context, data, size, sign);
@@ -2116,7 +2159,7 @@ static int transaction_sign(LWSProtocol *protocol, Transaction *tx)
 }
 
 /**
- * @brief  tx_serialize
+ * @brief  transaction_serialize
  * Serialize transaction with signature
  * @author gaochun
  * @email  gaochun@dabank.io
@@ -2139,28 +2182,61 @@ static size_t transaction_serialize(Transaction *tx, unsigned char *data)
 }
 
 LWSPError protocol_sendtx_request(LWSProtocol *protocol, const char *address, const VchData *vch, sha256_hash hash,
-                                  unsigned char *data, size_t length)
+                                  unsigned char *data, size_t *length)
 {
-    // 1 创建Tx结构体
+    if (NULL == protocol) {
+        return LWSPError_Protocol_NULL;
+    }
+
+    if (NULL == protocol->hook) {
+        return LWSPError_Hook_NULL;
+    }
+
+    // 创建Tx结构体
     Transaction *tx = transaction_new(protocol, address, vch);
     if (NULL == tx) {
         return LWSPError_Create_Tx_Error;
     }
 
-    // 2 签名
+    // 签名
     transaction_sign(protocol, tx);
 
-    // 3 序列化Tx
-    unsigned char tx_data[4096];
+    // 序列化Tx
+    unsigned char tx_data[1024];
     size_t tx_data_len = 0;
     tx_data_len = transaction_serialize(tx, tx_data);
     if (0 >= tx_data_len) {
         return LWSPError_Serialize_Tx_Error;
     }
 
-    // 4 创建send tx请求
-    // 5 序列化send tx请求
+    // 创建send tx请求
+    struct SendTxRequest request;
+    request.nonce = protocol->hook->hook_nonce_get(protocol->hook->hook_nonce_context);
+    transaction_hash(protocol, tx, request.tx_id);
+    protocol->hook->hook_fork_get(protocol->hook->hook_fork_context, request.fork_id);
+    request.data_size = tx_data_len;
 
+    // 序列化send tx请求
+    size_t body_len = 4 + 32 + 32 + 2 + tx_data_len + 2;
+    unsigned char body[body_len];
+    uint16_t command = SendTx;
+    memcpy(body, &command, 2);
+    memcpy(&body[2], &request, body_len - tx_data_len - 2);
+    memcpy(&body[72], request.tx_id, tx_data_len);
+
+    protocol->hook->hook_sha256_get(protocol->hook->hook_sha256_context, body, body_len, hash);
+
+    // 生成请求
+    wrap_request(protocol, body, body_len, hash, data, length);
+    protocol->sendtx_index++;
+
+    // 删除tx
+
+    return LWSPError_Success;
+}
+
+LWSPError protocol_sendtx_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len)
+{
     return LWSPError_Success;
 }
 

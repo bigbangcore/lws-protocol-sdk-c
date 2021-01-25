@@ -155,7 +155,7 @@ typedef struct {
 LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol **protocol);
 LWSPError protocol_listunspent_request(LWSProtocol *protocol, sha256_hash hash, unsigned char *data, size_t *length);
 LWSPError protocol_sendtx_request(LWSProtocol *protocol, const char *address, const VchData *vch, sha256_hash hash,
-                                  unsigned char *data, size_t length);
+                                  unsigned char *data, size_t *length);
 LWSPError protocol_reply_info(LWSProtocol *protocol, const unsigned char *data, const size_t length, ReplyInfo *info);
 LWSPError protocol_listunspent_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len);
 LWSPError protocol_sendtx_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len);

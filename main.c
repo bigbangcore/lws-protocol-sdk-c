@@ -190,7 +190,7 @@ static void mqtt_thread(LWSProtocol *protocol)
         return;
     }
 
-    char *host = "192.168.199.228";
+    char *host = "127.0.0.1";
     int port = 1883;
     mosquitto_connect_callback_set(mosq, connect_callback);
     mosquitto_message_callback_set(mosq, message_callback);
