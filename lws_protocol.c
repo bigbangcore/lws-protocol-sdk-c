@@ -352,6 +352,16 @@ static size_t deserialize_join(size_t *size, const unsigned char *data, void *th
     return *size;
 }
 
+/**
+ * @brief  protocol_new
+ * create new protocol object
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/1/26 22:22:0
+ * @param  const LWSProtocolHook * hook
+ * @param  LWSProtocol **   protocol
+ * @return  LWSPError
+ */
 LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol **protocol)
 {
     if (NULL == hook) {
