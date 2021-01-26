@@ -141,6 +141,13 @@ static int hook_did_get(const void *context, unsigned char *id)
 
 static unsigned int hook_nonce_get(const void *context) { return 101; }
 
+static unsigned int hook_datetime_get(const void *context)
+{
+    time_t now;
+    time(&now);
+    return now;
+}
+
 static int hook_public_key_get(const void *context, ed25519_public_key key)
 {
     const char *public_key_hex = "9a6501818596c03a0f5a982e366801e7be9386f5134a0a698fe6dd6c0e50ac8c"; // form bbc node
@@ -170,6 +177,14 @@ static unsigned int hook_crc32_get(const void *context, const unsigned char *dat
 
 static int hook_sign_ed25519(const void *ctx, const unsigned char *data, const size_t len, ed25519_signature signature)
 {
+    const char *private_key_hex = "";
+    unsigned char key[32];
+    sodium_hex2bin(key, 32, private_key_hex, 64, NULL, NULL, NULL);
+
+    unsigned char hash[32] = {0};
+    crypto_generichash_blake2b(hash, sizeof(hash), data, len, NULL, 0);
+    crypto_sign_ed25519_detached(signature, NULL, hash, sizeof(hash), &key[0]);
+
     return 0;
 }
 
@@ -252,6 +267,7 @@ int main(int argc, char **argv)
     LWSProtocolHook hook;
     hook.hook_id_get = hook_did_get;
     hook.hook_nonce_get = hook_nonce_get;
+    hook.hook_datetime_get = hook_datetime_get;
     hook.hook_public_key_get = hook_public_key_get;
     hook.hook_fork_get = hook_fork_get;
     hook.hook_sha256_get = hook_sha256_get;

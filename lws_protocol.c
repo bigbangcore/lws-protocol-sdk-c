@@ -1574,6 +1574,10 @@ LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol **protocol)
         return LWSPError_HookNonceGet_NULL;
     }
 
+    if (NULL == hook->hook_datetime_get) {
+        return LWSPError_HookDatetimeGet_NULL;
+    }
+
     if (NULL == hook->hook_public_key_get) {
         return LWSPError_HookPublicKeyGet_NULL;
     }
@@ -1717,6 +1721,11 @@ struct ListUnspentBody {
     ArrayList *utxo_list;
 };
 
+struct SendTxBody {
+    uint16_t command;
+    uint32_t nonce;
+};
+
 /**
  * @brief  compare_utxo
  * Compare v1(UTXO) and v2(UTXO)
@@ -1810,6 +1819,7 @@ static struct ListUnspentBody listunspent_body_deserialize(const unsigned char *
     deserialize_join(&size, data, &body.utxo_number, size_thing);
 
     // 端序转换
+    reverse((unsigned char *)&body.command, 2);
     reverse((unsigned char *)&body.nonce, 4);
     reverse((unsigned char *)&body.block_height, 4);
     reverse((unsigned char *)&body.block_time, 4);
@@ -1876,8 +1886,6 @@ LWSPError protocol_listunspent_reply_handle(LWSProtocol *protocol, const unsigne
         memcpy(protocol->last_block_hash, body.block_hash, 32);
         protocol->last_block_height = body.block_height;
         protocol->last_block_time = body.block_time;
-
-        // TODO:端序转化
 
         // clear globle utxo list
         int i, len = protocol->utxo_list->length;
@@ -2235,8 +2243,33 @@ LWSPError protocol_sendtx_request(LWSProtocol *protocol, const char *address, co
     return LWSPError_Success;
 }
 
+static struct SendTxBody sendtx_body_deserialize(const unsigned char *data)
+{
+    struct SendTxBody body;
+    size_t size = 0;
+    size_t size_thing = sizeof(body.command);
+    deserialize_join(&size, data, &body.command, size_thing);
+
+    size_thing = sizeof(body.nonce);
+    deserialize_join(&size, data, &body.nonce, size_thing);
+
+    reverse((unsigned char *)&body.command, 2);
+    reverse((unsigned char *)&body.nonce, 4);
+
+    return body;
+}
+
 LWSPError protocol_sendtx_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len)
 {
+    unsigned char out[len];
+    size_t out_len = 0;
+    LWSPError error = reply_remove_head(data, len, out, &out_len);
+    if (LWSPError_Success == error) {
+        struct SendTxBody body = sendtx_body_deserialize(out);
+    } else {
+        return error;
+    }
+
     return LWSPError_Success;
 }
 

@@ -136,6 +136,7 @@ typedef enum {
     LWSPError_HookSHA256GET_NULL,
     LWSPError_HookForkGet_NULL,
     LWSPError_HookPublicKeyGet_NULL,
+    LWSPError_HookDatetimeGet_NULL,
     LWSPError_HookNonceGet_NULL,
     LWSPError_HookDevieIDGet_NULL,
     LWSPError_Allocate_Fail,
