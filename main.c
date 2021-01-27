@@ -121,7 +121,6 @@ static void connect_callback(struct mosquitto *mosq, void *obj, int result)
 static void message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
 {
     LWSProtocol *protocol = (LWSProtocol *)obj;
-    // receiver
     char hex[message->payloadlen * 2 + 1];
     memset(hex, 0x00, message->payloadlen * 2 + 1);
     sodium_bin2hex(hex, message->payloadlen * 2 + 1, message->payload, message->payloadlen);
