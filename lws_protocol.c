@@ -352,6 +352,10 @@ static size_t deserialize_join(size_t *size, const unsigned char *data, void *th
     return *size;
 }
 
+size_t protocol_utils_hex2bin(const char *hex, unsigned char *bin) { return hex_to_uchar(hex, bin); }
+
+void protocol_utils_reverse(void *data, size_t size) { return reverse((unsigned char *)data, size); }
+
 /**
  * @brief  protocol_new
  * create new protocol object
@@ -728,7 +732,7 @@ static size_t calc_tx_fee(size_t nVchData)
     }
 }
 
-static Transaction *transaction_new(LWSProtocol *protocol, const unsigned char *address, const VchData *vch_data)
+static Transaction *transaction_new(LWSProtocol *protocol, const unsigned char *address, const TxVchData *vch_data)
 {
     size_t list_len = protocol->utxo_list->length;
     struct UTXO *utxo = NULL;
@@ -961,8 +965,8 @@ static size_t transaction_serialize(Transaction *tx, unsigned char *data)
     return size;
 }
 
-LWSPError protocol_sendtx_request(LWSProtocol *protocol, const char *address, const VchData *vch, sha256_hash hash,
-                                  unsigned char *data, size_t *length)
+LWSPError protocol_sendtx_request(LWSProtocol *protocol, const unsigned char *address, const TxVchData *vch,
+                                  sha256_hash hash, unsigned char *data, size_t *length)
 {
     if (NULL == protocol) {
         return LWSPError_Protocol_NULL;

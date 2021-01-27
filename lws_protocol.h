@@ -7,10 +7,12 @@ extern "C" {
 
 #include <stdint.h>
 
+#define VERSION 0x0002
 typedef unsigned char big_num[32];
 typedef big_num ed25519_signature;
 typedef big_num ed25519_public_key;
 typedef big_num blake2b_hash;
+typedef big_num sha256_hash;
 
 typedef struct {
     unsigned char uuid[16];
@@ -19,11 +21,7 @@ typedef struct {
     unsigned char *desc;
     uint32_t len;
     char *data;
-} VchData;
-
-// New LWS protocol
-#define VERSION 0x0002
-typedef big_num sha256_hash;
+} TxVchData;
 
 typedef unsigned int (*HookNonceGet)(const void *ctx);
 typedef unsigned int (*HookDatetimeGet)(const void *ctx);
@@ -87,10 +85,13 @@ typedef struct {
     uint16_t command;
 } ReplyInfo;
 
+size_t protocol_utils_hex2bin(const char *hex, unsigned char *bin);
+void protocol_utils_reverse(void *data, size_t size);
+
 LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol **protocol);
 LWSPError protocol_listunspent_request(LWSProtocol *protocol, sha256_hash hash, unsigned char *data, size_t *length);
-LWSPError protocol_sendtx_request(LWSProtocol *protocol, const char *address, const VchData *vch, sha256_hash hash,
-                                  unsigned char *data, size_t *length);
+LWSPError protocol_sendtx_request(LWSProtocol *protocol, const unsigned char *address, const TxVchData *vch,
+                                  sha256_hash hash, unsigned char *data, size_t *length);
 LWSPError protocol_reply_info(LWSProtocol *protocol, const unsigned char *data, const size_t length, ReplyInfo *info);
 LWSPError protocol_listunspent_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len);
 LWSPError protocol_sendtx_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len);
