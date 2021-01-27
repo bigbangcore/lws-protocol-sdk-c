@@ -15,9 +15,14 @@ include_directories("external_libs/c-algorithms/src/")
 file(GLOB Crc_SRC "external_libs/crc/crc/*.c")
 include_directories("external_libs/crc/crc/")
 
+# uuid
+file(GLOB UUID_SRC "external_libs/uuid4/src/*.c")
+include_directories("external_libs/uuid4/src/")
+
 # main
 set(src main.c lws_protocol.c lws_protocol.h)
 set(src ${src} ${CAlgorithms_SRC})
 set(src ${src} ${Crc_SRC})
+set(src ${src} ${UUID_SRC})
 add_executable(lwsp ${src})
 target_link_libraries(lwsp pthread sodium mosquitto)

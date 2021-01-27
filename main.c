@@ -6,6 +6,7 @@
 #include <sodium.h>
 #include <mosquitto.h>
 #include "crc32.h"
+#include "uuid4.h"
 #include "lws_protocol.h"
 
 static char device_id[12] = {253, 255, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13};
@@ -159,8 +160,9 @@ static int hook_public_key_get(const void *context, ed25519_public_key key)
 
 static int hook_fork_get(const void *context, big_num fork)
 {
-    const char *fork_hex = "0000000006854ebdc236f48dbbe5c87312ea0abd7398888374b5ee9a5eb1d291";
+    const char *fork_hex = "0000001f9a046730bf5102283f43fe51bd1c1b913b3b931c1566d9c5e1463a7e";
     sodium_hex2bin(fork, 32, fork_hex, 64, NULL, NULL, NULL);
+    protocol_utils_reverse(fork, 32);
 
     return 0;
 }
@@ -177,13 +179,16 @@ static unsigned int hook_crc32_get(const void *context, const unsigned char *dat
 
 static int hook_sign_ed25519(const void *ctx, const unsigned char *data, const size_t len, ed25519_signature signature)
 {
-    const char *private_key_hex = "";
-    unsigned char key[32];
+    const char *private_key_hex = "ec1883605124189bd30f04d123845052f4108ad7975f0d3a50dab22150ae42c5";
+    unsigned char key[64];
+    unsigned char seed[64];
     sodium_hex2bin(key, 32, private_key_hex, 64, NULL, NULL, NULL);
+    protocol_utils_reverse(key, 32);
+    crypto_sign_seed_keypair(&key[32], seed, (unsigned char *)key);
 
     unsigned char hash[32] = {0};
     crypto_generichash_blake2b(hash, sizeof(hash), data, len, NULL, 0);
-    crypto_sign_ed25519_detached(signature, NULL, hash, sizeof(hash), &key[0]);
+    crypto_sign_ed25519_detached(signature, NULL, hash, sizeof(hash), key);
 
     return 0;
 }
@@ -233,6 +238,55 @@ static void mqtt_thread(LWSProtocol *protocol)
     mosquitto_lib_cleanup();
 }
 
+static void gen_uuid(unsigned char *uuid)
+{
+    char buf[UUID4_LEN];
+
+    int rc = uuid4_init();
+    if (UUID4_ESUCCESS != rc) {
+    }
+
+    uuid4_generate(buf);
+    char hex[33] = {'\0'};
+
+    int n, m = 0;
+    for (n = 0; n < 36; n++) {
+        if ('-' == buf[n]) {
+            continue;
+        }
+
+        hex[m] = buf[n];
+        m++;
+    }
+
+    int i, j;
+    for (i = 0, j = 0; j < 16; i += 2, j++) {
+        uuid[j] = (unsigned char)((hex[i] % 32 + 9) % 25 * 16 + (hex[i + 1] % 32 + 9) % 25);
+    }
+}
+
+static TxVchData create_tx_data()
+{
+    char *b64_json = "anNvbg==";
+    TxVchData vch_data;
+
+    unsigned char uuid[16];
+    gen_uuid(vch_data.uuid);
+
+    time_t now_time;
+    time(&now_time);
+    memcpy(vch_data.timestamp, &now_time, sizeof(now_time));
+
+    vch_data.desc = b64_json;
+    vch_data.desc_size = strlen(b64_json);
+
+    char json[100] = {'\0'};
+    sprintf(json, "{\"temperature\": %f}", 25.0);
+
+    vch_data.len = strlen(json);
+    vch_data.data = json;
+}
+
 static void loop(LWSProtocol *protocol)
 {
     while (1 != connected) {
@@ -256,8 +310,23 @@ static void loop(LWSProtocol *protocol)
     int ret = message_sender(mosq, listunspent_request, length, hash);
     printf("connect message sender return:%d\n", ret);
 
+    const char *target_hex = "e0b440ccdf4f2d014595e6fdec6e0cb38e18d08d2742ff777c012c4ea43ab588";
+    unsigned char target[32];
+    sodium_hex2bin(target, 32, target_hex, 64, NULL, NULL, NULL);
+    protocol_utils_reverse(target, 32);
+
     for (;;) {
-        sleep(1);
+        sleep(2);
+
+        TxVchData vch = create_tx_data();
+        unsigned char sendtx_request[1024];
+        length = 0;
+        error = protocol_sendtx_request(protocol, target, &vch, hash, sendtx_request, &length);
+
+        char hex[length * 2 + 1];
+        memset(hex, 0x00, length * 2 + 1);
+        sodium_bin2hex(hex, length * 2 + 1, sendtx_request, length);
+        printf("sendtx error:%d, length:%ld, hex:%s\n", error, length, hex);
     }
 }
 

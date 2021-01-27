@@ -7,3 +7,6 @@
 [submodule "external_libs/log.c"]
 	path = external_libs/log.c
 	url = https://github.com/rxi/log.c.git
+[submodule "external_libs/uuid4"]
+	path = external_libs/uuid4
+	url = https://github.com/rxi/uuid4.git
