@@ -322,10 +322,10 @@ static void loop(LWSProtocol *protocol)
         length = 0;
         error = protocol_sendtx_request(protocol, target, &vch, hash, sendtx_request, &length);
 
-        char hex[length * 2 + 1];
-        memset(hex, 0x00, length * 2 + 1);
-        sodium_bin2hex(hex, length * 2 + 1, sendtx_request, length);
-        printf("sendtx error:%d, length:%ld, hex:%s\n", error, length, hex);
+        // char hex[length * 2 + 1];
+        // memset(hex, 0x00, length * 2 + 1);
+        // sodium_bin2hex(hex, length * 2 + 1, sendtx_request, length);
+        // printf("sendtx error:%d, length:%ld, hex:%s\n", error, length, hex);
     }
 }
 
