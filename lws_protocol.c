@@ -637,9 +637,6 @@ static LWSPError reply_crc32(LWSProtocol *protocol, const unsigned char *data, c
     uint32_t crc32 = 0;
     memcpy(&crc32, &data[len - 4], 4);
     uint32_t foot = protocol->hook->hook_crc32_get(protocol->hook->hook_crc32_context, data, len - 4);
-
-    printf("==============crc32:%ud, foot:%ud\n", crc32, foot);
-
     reverse((unsigned char *)&crc32, 4);
     if (foot != crc32) {
         return LWSPError_CRC32_Different;
@@ -650,11 +647,14 @@ static LWSPError reply_crc32(LWSProtocol *protocol, const unsigned char *data, c
 
 LWSPError protocol_listunspent_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len)
 {
-    reply_crc32(protocol, data, len);
+    LWSPError error = reply_crc32(protocol, data, len);
+    if (LWSPError_Success != error) {
+        return error;
+    }
 
     unsigned char out[len];
     size_t out_len = 0;
-    LWSPError error = reply_remove_head(data, len, out, &out_len);
+    error = reply_remove_head(data, len, out, &out_len);
     if (LWSPError_Success == error) {
         struct ListUnspentBody body = listunspent_body_deserialize(out);
 
