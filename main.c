@@ -264,28 +264,6 @@ static void gen_uuid(unsigned char *uuid)
     }
 }
 
-static TxVchData create_tx_data()
-{
-    char *b64_json = "anNvbg==";
-    TxVchData vch_data;
-
-    unsigned char uuid[16];
-    gen_uuid(vch_data.uuid);
-
-    time_t now_time;
-    time(&now_time);
-    memcpy(vch_data.timestamp, &now_time, sizeof(now_time));
-
-    vch_data.desc = b64_json;
-    vch_data.desc_size = strlen(b64_json);
-
-    char json[100] = {'\0'};
-    sprintf(json, "{\"temperature\": %f}", 25.0);
-
-    vch_data.len = strlen(json);
-    vch_data.data = json;
-}
-
 static void loop(LWSProtocol *protocol)
 {
     while (1 != connected) {
@@ -317,7 +295,22 @@ static void loop(LWSProtocol *protocol)
     for (;;) {
         sleep(2);
 
-        TxVchData vch = create_tx_data();
+        // 生成交易载荷
+        char *b64_json = "anNvbg==";
+        TxVchData vch;
+        unsigned char uuid[16];
+        gen_uuid(vch.uuid);
+        time_t now_time;
+        time(&now_time);
+        memcpy(vch.timestamp, &now_time, sizeof(now_time));
+        vch.desc = b64_json;
+        vch.desc_size = strlen(b64_json);
+        char json[100] = {'\0'};
+        sprintf(json, "{\"temperature\": %f}", 25.0);
+        vch.len = strlen(json);
+        vch.data = json;
+
+        // 生成交易请求
         unsigned char sendtx_request[1024];
         length = 0;
         error = protocol_sendtx_request(protocol, target, &vch, hash, sendtx_request, &length);
