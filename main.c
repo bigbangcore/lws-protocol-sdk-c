@@ -160,7 +160,8 @@ static int hook_public_key_get(const void *context, ed25519_public_key key)
 
 static int hook_fork_get(const void *context, big_num fork)
 {
-    const char *fork_hex = "0000001f9a046730bf5102283f43fe51bd1c1b913b3b931c1566d9c5e1463a7e";
+    // const char *fork_hex = "0000001f9a046730bf5102283f43fe51bd1c1b913b3b931c1566d9c5e1463a7e";
+    const char *fork_hex = "0000000006854ebdc236f48dbbe5c87312ea0abd7398888374b5ee9a5eb1d291";
     protocol_utils_hex2bin(fork_hex, fork);
 
     return 0;
@@ -189,6 +190,12 @@ static int hook_sign_ed25519(const void *ctx, const unsigned char *data, const s
     crypto_generichash_blake2b(hash, sizeof(hash), data, len, NULL, 0);
     crypto_sign_ed25519_detached(signature, NULL, hash, sizeof(hash), key);
 
+    return 0;
+}
+
+static int hook_blake2b_get(const void *ctx, const unsigned char *data, const size_t len, blake2b_hash hash)
+{
+    crypto_generichash_blake2b(hash, 32, data, len, NULL, 0);
     return 0;
 }
 
@@ -315,10 +322,12 @@ static void loop(LWSProtocol *protocol)
         length = 0;
         error = protocol_sendtx_request(protocol, target, &vch, hash, sendtx_request, &length);
 
-        // char hex[length * 2 + 1];
-        // memset(hex, 0x00, length * 2 + 1);
-        // sodium_bin2hex(hex, length * 2 + 1, sendtx_request, length);
-        // printf("sendtx error:%d, length:%ld, hex:%s\n", error, length, hex);
+        char hex[length * 2 + 1];
+        memset(hex, 0x00, length * 2 + 1);
+        sodium_bin2hex(hex, length * 2 + 1, sendtx_request, length);
+        printf("sendtx error:%d, length:%ld, hex:%s\n", error, length, hex);
+
+        // 同步发送交易请求
     }
 }
 
@@ -330,6 +339,7 @@ int main(int argc, char **argv)
     hook.hook_nonce_get = hook_nonce_get;
     hook.hook_datetime_get = hook_datetime_get;
     hook.hook_public_key_get = hook_public_key_get;
+    hook.hook_blake2b_get = hook_blake2b_get;
     hook.hook_fork_get = hook_fork_get;
     hook.hook_sha256_get = hook_sha256_get;
     hook.hook_crc32_get = hook_crc32_get;

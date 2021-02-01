@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <sodium.h>
 #include "lws_protocol.h"
 
 // ArrayList used c-algorithms--https://fragglet.github.io/c-algorithms/doc/arraylist_8h.html
@@ -918,7 +919,8 @@ static int transaction_hash(LWSProtocol *protocol, Transaction *tx, unsigned cha
 {
     unsigned char data[1024];
     size_t size = transaction_serialize_without_sign(tx, data);
-    return 0;
+
+    return protocol->hook->hook_blake2b_get(protocol->hook->hook_blake2b_context, data, size, tx_id);
 }
 
 /**
@@ -993,6 +995,11 @@ LWSPError protocol_sendtx_request(LWSProtocol *protocol, const unsigned char *ad
         return LWSPError_Serialize_Tx_Error;
     }
 
+    char hex[tx_data_len * 2 + 1];
+    memset(hex, 0x00, tx_data_len * 2 + 1);
+    sodium_bin2hex(hex, tx_data_len * 2 + 1, tx_data, tx_data_len);
+    printf("tx-> length:%ld, hex:%s\n", tx_data_len, hex);
+
     // 创建send tx请求
     struct SendTxRequest request;
     request.nonce = protocol->hook->hook_nonce_get(protocol->hook->hook_nonce_context);
@@ -1000,13 +1007,24 @@ LWSPError protocol_sendtx_request(LWSProtocol *protocol, const unsigned char *ad
     protocol->hook->hook_fork_get(protocol->hook->hook_fork_context, request.fork_id);
     request.data_size = tx_data_len;
 
+    char hex1[65];
+    memset(hex1, 0x00, 65);
+    sodium_bin2hex(hex1, 65, request.tx_id, 32);
+    printf("tx_id-> length:%d, hex:%s\n", 32, hex1);
+
     // 序列化send tx请求
     size_t body_len = 4 + 32 + 32 + 2 + tx_data_len + 2;
+    request.tx_data = tx_data;
     unsigned char body[body_len];
     uint16_t command = SendTx;
     memcpy(body, &command, 2);
     memcpy(&body[2], &request, body_len - tx_data_len - 2);
-    memcpy(&body[72], request.tx_id, tx_data_len);
+    memcpy(&body[72], request.tx_data, tx_data_len);
+
+    char hex2[body_len * 2 + 1];
+    memset(hex2, 0x00, body_len * 2 + 1);
+    sodium_bin2hex(hex2, body_len * 2 + 1, body, body_len);
+    printf("body-> length:%ld, hex:%s\n", body_len, hex2);
 
     protocol->hook->hook_sha256_get(protocol->hook->hook_sha256_context, body, body_len, hash);
 
