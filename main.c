@@ -328,6 +328,10 @@ static void loop(LWSProtocol *protocol)
         printf("sendtx error:%d, length:%ld, hex:%s\n", error, length, hex);
 
         // 同步发送交易请求
+
+        int ret_sendtx = message_sender(mosq, sendtx_request, length, hash);
+        printf("tx sender return:%d\n", ret_sendtx);
+        break;
     }
 }
 

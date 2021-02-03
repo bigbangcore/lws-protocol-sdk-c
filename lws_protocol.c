@@ -620,6 +620,7 @@ static struct ListUnspentBody listunspent_body_deserialize(const unsigned char *
         utxo->data = d;
 
         // 端序转换
+        reverse((unsigned char *)&utxo->txid, 32);
         reverse((unsigned char *)&utxo->out, 1);
         reverse((unsigned char *)&utxo->block_height, 4);
         reverse((unsigned char *)&utxo->type, 2);
