@@ -219,7 +219,7 @@ struct SendTxRequest {
 struct UTXO {
     unsigned char txid[32];
     uint8_t out;
-    uint32_t block_height;
+    uint32_t timestamp;
     uint16_t type;
     uint32_t amount;
     unsigned char sender[33];
@@ -241,6 +241,7 @@ struct ListUnspentBody {
 struct SendTxBody {
     uint16_t command;
     uint32_t nonce;
+    unsigned char tx_id[32];
 };
 
 struct RequestHead {
@@ -595,8 +596,8 @@ static struct ListUnspentBody listunspent_body_deserialize(const unsigned char *
         size_thing = sizeof(utxo->out);
         deserialize_join(&size, data, &utxo->out, size_thing);
 
-        size_thing = sizeof(utxo->block_height);
-        deserialize_join(&size, data, &utxo->block_height, size_thing);
+        size_thing = sizeof(utxo->timestamp);
+        deserialize_join(&size, data, &utxo->timestamp, size_thing);
 
         size_thing = sizeof(utxo->type);
         deserialize_join(&size, data, &utxo->type, size_thing);
@@ -622,7 +623,7 @@ static struct ListUnspentBody listunspent_body_deserialize(const unsigned char *
         // 端序转换
         reverse((unsigned char *)&utxo->txid, 32);
         reverse((unsigned char *)&utxo->out, 1);
-        reverse((unsigned char *)&utxo->block_height, 4);
+        reverse((unsigned char *)&utxo->timestamp, 4);
         reverse((unsigned char *)&utxo->type, 2);
         reverse((unsigned char *)&utxo->amount, 8);
         reverse((unsigned char *)&utxo->lock_until, 4);
@@ -916,12 +917,13 @@ static size_t transaction_serialize_without_sign(Transaction *tx, unsigned char 
     return size;
 }
 
-static int transaction_hash(LWSProtocol *protocol, Transaction *tx, unsigned char *tx_id)
+static int transaction_hash(LWSProtocol *protocol, const unsigned char *data, const size_t length,
+                            const uint32_t timestamp, unsigned char *tx_id)
 {
-    unsigned char data[1024];
-    size_t size = transaction_serialize_without_sign(tx, data);
+    protocol->hook->hook_blake2b_get(protocol->hook->hook_blake2b_context, data, length, tx_id);
+    memcpy(tx_id + 28, &timestamp, 4);
 
-    return protocol->hook->hook_blake2b_get(protocol->hook->hook_blake2b_context, data, size, tx_id);
+    return 0;
 }
 
 /**
@@ -1004,7 +1006,7 @@ LWSPError protocol_sendtx_request(LWSProtocol *protocol, const unsigned char *ad
     // 创建send tx请求
     struct SendTxRequest request;
     request.nonce = protocol->hook->hook_nonce_get(protocol->hook->hook_nonce_context);
-    transaction_hash(protocol, tx, request.tx_id);
+    transaction_hash(protocol, tx_data, tx_data_len, tx->timestamp, request.tx_id);
     protocol->hook->hook_fork_get(protocol->hook->hook_fork_context, request.fork_id);
     request.data_size = tx_data_len;
 
