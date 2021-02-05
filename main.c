@@ -104,6 +104,7 @@ static int message_receiver(LWSProtocol *protocol, const unsigned char *data, co
     }
 
     if (0 == info.error && SendTx == info.command) {
+        error = protocol_sendtx_reply_handle(protocol, data, length);
     }
     pthread_mutex_unlock(&buff.lock);
 
@@ -313,7 +314,7 @@ static void loop(LWSProtocol *protocol)
         vch.desc = b64_json;
         vch.desc_size = strlen(b64_json);
         char json[100] = {'\0'};
-        sprintf(json, "{\"temperature\": %f}", 25.0);
+        sprintf(json, "{\"temperature\": %f}", (float)(rand() % 50 - 50));
         vch.len = strlen(json);
         vch.data = json;
 
@@ -331,7 +332,8 @@ static void loop(LWSProtocol *protocol)
 
         int ret_sendtx = message_sender(mosq, sendtx_request, length, hash);
         printf("tx sender return:%d\n", ret_sendtx);
-        break;
+        // break;
+        usleep(500 * 1000);
     }
 }
 

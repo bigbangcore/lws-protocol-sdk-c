@@ -200,6 +200,7 @@ struct _LWSProtocol {
     unsigned char last_block_hash[32];
     uint32_t last_block_height;
     uint32_t last_block_time;
+    uint32_t next_amount;
 };
 
 struct ListUnspentRequest {
@@ -774,6 +775,8 @@ static Transaction *transaction_new(LWSProtocol *protocol, const unsigned char *
         utxo->amount += utxo2->amount;
     }
 
+    protocol->next_amount = utxo->amount; // Set global amount
+
     Transaction *tx = (Transaction *)malloc(sizeof(Transaction));
     memset(tx, 0x00, sizeof(Transaction));
     tx->version = 1;
@@ -1010,10 +1013,10 @@ LWSPError protocol_sendtx_request(LWSProtocol *protocol, const unsigned char *ad
     protocol->hook->hook_fork_get(protocol->hook->hook_fork_context, request.fork_id);
     request.data_size = tx_data_len;
 
-    char hex1[65];
-    memset(hex1, 0x00, 65);
-    sodium_bin2hex(hex1, 65, request.tx_id, 32);
-    printf("tx_id-> length:%d, hex:%s\n", 32, hex1);
+    // char hex1[65];
+    // memset(hex1, 0x00, 65);
+    // sodium_bin2hex(hex1, 65, request.tx_id, 32);
+    // printf("tx_id-> length:%d, hex:%s\n", 32, hex1);
 
     // 序列化send tx请求
     size_t body_len = 4 + 32 + 32 + 2 + tx_data_len + 2;
@@ -1024,10 +1027,10 @@ LWSPError protocol_sendtx_request(LWSProtocol *protocol, const unsigned char *ad
     memcpy(&body[2], &request, body_len - tx_data_len - 2);
     memcpy(&body[72], request.tx_data, tx_data_len);
 
-    char hex2[body_len * 2 + 1];
-    memset(hex2, 0x00, body_len * 2 + 1);
-    sodium_bin2hex(hex2, body_len * 2 + 1, body, body_len);
-    printf("body-> length:%ld, hex:%s\n", body_len, hex2);
+    // char hex2[body_len * 2 + 1];
+    // memset(hex2, 0x00, body_len * 2 + 1);
+    // sodium_bin2hex(hex2, body_len * 2 + 1, body, body_len);
+    // printf("body-> length:%ld, hex:%s\n", body_len, hex2);
 
     protocol->hook->hook_sha256_get(protocol->hook->hook_sha256_context, body, body_len, hash);
 
@@ -1051,8 +1054,12 @@ static struct SendTxBody sendtx_body_deserialize(const unsigned char *data)
     size_thing = sizeof(body.nonce);
     deserialize_join(&size, data, &body.nonce, size_thing);
 
+    size_thing = sizeof(body.tx_id);
+    deserialize_join(&size, data, body.tx_id, size_thing);
+
     reverse((unsigned char *)&body.command, 2);
     reverse((unsigned char *)&body.nonce, 4);
+    reverse((unsigned char *)&body.tx_id, 32);
 
     return body;
 }
@@ -1064,6 +1071,13 @@ LWSPError protocol_sendtx_reply_handle(LWSProtocol *protocol, const unsigned cha
     LWSPError error = reply_remove_head(data, len, out, &out_len);
     if (LWSPError_Success == error) {
         struct SendTxBody body = sendtx_body_deserialize(out);
+
+        // Append tx to utxo list
+        struct UTXO *utxo = (struct UTXO *)malloc(sizeof(struct UTXO));
+        memcpy(utxo->txid, body.tx_id, 32);
+
+        utxo->amount = protocol->next_amount;
+        arraylist_append(protocol->utxo_list, utxo);
     } else {
         return error;
     }
