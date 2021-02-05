@@ -10,3 +10,6 @@
 [submodule "external_libs/uuid4"]
 	path = external_libs/uuid4
 	url = https://github.com/rxi/uuid4.git
+[submodule "external_libs/iniparser"]
+	path = external_libs/iniparser
+	url = https://github.com/ndevilla/iniparser.git
