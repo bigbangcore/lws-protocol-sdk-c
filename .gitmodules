@@ -1,0 +1,15 @@
+[submodule "external_libs/crc"]
+	path = external_libs/crc
+	url = https://github.com/gityf/crc.git
+[submodule "external_libs/c-algorithms"]
+	path = external_libs/c-algorithms
+	url = https://github.com/fragglet/c-algorithms.git
+[submodule "external_libs/log.c"]
+	path = external_libs/log.c
+	url = https://github.com/rxi/log.c.git
+[submodule "external_libs/uuid4"]
+	path = external_libs/uuid4
+	url = https://github.com/rxi/uuid4.git
+[submodule "external_libs/iniparser"]
+	path = external_libs/iniparser
+	url = https://github.com/ndevilla/iniparser.git
