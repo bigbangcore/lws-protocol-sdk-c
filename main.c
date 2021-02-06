@@ -24,6 +24,18 @@ static struct RequestBuffer {
     unsigned char hash[32];
 } buff;
 
+/**
+ * @brief  message_sender
+ * 用户自定义消息发送函数
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:43:46
+ * @param  struct mosquitto * mosq
+ * @param  const unsigned char * data
+ * @param  const size_t     length
+ * @param  const unsigned char * hash
+ * @return static int
+ */
 static int message_sender(struct mosquitto *mosq, const unsigned char *data, const size_t length,
                           const unsigned char *hash)
 {
@@ -73,6 +85,17 @@ static int message_sender(struct mosquitto *mosq, const unsigned char *data, con
     return 40; //超时
 }
 
+/**
+ * @brief  message_receiver
+ * 用户自定义消息接收函数
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:44:49
+ * @param  LWSProtocol *    protocol
+ * @param  const unsigned char * data
+ * @param  const size_t     length
+ * @return static int
+ */
 static int message_receiver(LWSProtocol *protocol, const unsigned char *data, const size_t length)
 {
     ReplyInfo info;
@@ -111,6 +134,17 @@ static int message_receiver(LWSProtocol *protocol, const unsigned char *data, co
     return 0;
 }
 
+/**
+ * @brief  connect_callback
+ * mosquitto 连接回调函数
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:45:39
+ * @param  struct mosquitto * mosq
+ * @param  void *           obj
+ * @param  int              result
+ * @return static void
+ */
 static void connect_callback(struct mosquitto *mosq, void *obj, int result)
 {
     LWSProtocol *protocol = (LWSProtocol *)obj;
@@ -119,6 +153,17 @@ static void connect_callback(struct mosquitto *mosq, void *obj, int result)
     connected = 1;
 }
 
+/**
+ * @brief  message_callback
+ * mosquitto 消息接收回调函数
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:46:50
+ * @param  struct mosquitto * mosq
+ * @param  void *           obj
+ * @param  const struct mosquitto_message * message
+ * @return static void
+ */
 static void message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
 {
     LWSProtocol *protocol = (LWSProtocol *)obj;
@@ -131,8 +176,6 @@ static void message_callback(struct mosquitto *mosq, void *obj, const struct mos
     printf("message_callback return:%d\n", rc);
 }
 
-static void publish_callback(struct mosquitto *mosq, void *data, int mid) {}
-
 static int hook_did_get(const void *context, unsigned char *id)
 {
     memcpy(id, device_id, 12);
@@ -140,8 +183,28 @@ static int hook_did_get(const void *context, unsigned char *id)
     return 12;
 }
 
+/// LWS Protocol 注册回调函数体
+
+/**
+ * @brief  hook_nonce_get
+ * 随机数获取
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:49:6
+ * @param  const void *     context
+ * @return static unsigned int
+ */
 static unsigned int hook_nonce_get(const void *context) { return 101; }
 
+/**
+ * @brief  hook_datetime_get
+ * 时间获取
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:49:24
+ * @param  const void *     context
+ * @return static unsigned int
+ */
 static unsigned int hook_datetime_get(const void *context)
 {
     time_t now;
@@ -149,6 +212,16 @@ static unsigned int hook_datetime_get(const void *context)
     return now;
 }
 
+/**
+ * @brief  hook_public_key_get
+ * 目标公钥获取
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:50:23
+ * @param  const void *     context
+ * @param  ed25519_public_key  key
+ * @return static int
+ */
 static int hook_public_key_get(const void *context, ed25519_public_key key)
 {
     const char *public_key_hex = "e0b440ccdf4f2d014595e6fdec6e0cb38e18d08d2742ff777c012c4ea43ab588"; // form bbc node
@@ -159,6 +232,16 @@ static int hook_public_key_get(const void *context, ed25519_public_key key)
     return 0;
 }
 
+/**
+ * @brief  hook_fork_get
+ * 交易分支id获取
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:51:8
+ * @param  const void *     context
+ * @param  big_num          fork
+ * @return static int
+ */
 static int hook_fork_get(const void *context, big_num fork)
 {
     // const char *fork_hex = "0000001f9a046730bf5102283f43fe51bd1c1b913b3b931c1566d9c5e1463a7e";
@@ -168,16 +251,51 @@ static int hook_fork_get(const void *context, big_num fork)
     return 0;
 }
 
+/**
+ * @brief  hook_sha256_get
+ * SHA256 hash获取
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:51:50
+ * @param  const void *     context
+ * @param  const unsigned char * data
+ * @param  size_t           len
+ * @param  sha256_hash      hash
+ * @return static int
+ */
 static int hook_sha256_get(const void *context, const unsigned char *data, size_t len, sha256_hash hash)
 {
     return crypto_hash_sha256(hash, data, len);
 }
 
+/**
+ * @brief  hook_crc32_get
+ * crc32获取
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:53:0
+ * @param  const void *     context
+ * @param  const unsigned char * data
+ * @param  const size_t     len
+ * @return static unsigned int
+ */
 static unsigned int hook_crc32_get(const void *context, const unsigned char *data, const size_t len)
 {
     return crc32(data, len);
 }
 
+/**
+ * @brief  hook_sign_ed25519
+ * ed25519 签名获取
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:53:45
+ * @param  const void *     ctx
+ * @param  const unsigned char * data
+ * @param  const size_t     len
+ * @param  ed25519_signature  signature
+ * @return static int
+ */
 static int hook_sign_ed25519(const void *ctx, const unsigned char *data, const size_t len, ed25519_signature signature)
 {
     const char *private_key_hex = "ec1883605124189bd30f04d123845052f4108ad7975f0d3a50dab22150ae42c5";
@@ -194,12 +312,33 @@ static int hook_sign_ed25519(const void *ctx, const unsigned char *data, const s
     return 0;
 }
 
+/**
+ * @brief  hook_blake2b_get
+ * blake2b hash获取
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:54:39
+ * @param  const void *     ctx
+ * @param  const unsigned char * data
+ * @param  const size_t     len
+ * @param  blake2b_hash     hash
+ * @return static int
+ */
 static int hook_blake2b_get(const void *ctx, const unsigned char *data, const size_t len, blake2b_hash hash)
 {
     crypto_generichash_blake2b(hash, 32, data, len, NULL, 0);
     return 0;
 }
 
+/**
+ * @brief  mqtt_thread
+ * mqtt连接维护进程函数
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:55:39
+ * @param  LWSProtocol *    protocol
+ * @return static void
+ */
 static void mqtt_thread(LWSProtocol *protocol)
 {
     // 设置id
@@ -221,7 +360,6 @@ static void mqtt_thread(LWSProtocol *protocol)
     int port = 1883;
     mosquitto_connect_callback_set(mosq, connect_callback);
     mosquitto_message_callback_set(mosq, message_callback);
-    mosquitto_publish_callback_set(mosq, publish_callback);
 
     rc = mosquitto_connect(mosq, host, port, 120);
     if (MOSQ_ERR_SUCCESS == rc) {
@@ -245,6 +383,15 @@ static void mqtt_thread(LWSProtocol *protocol)
     mosquitto_lib_cleanup();
 }
 
+/**
+ * @brief  gen_uuid
+ * 产生uuid
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:56:29
+ * @param  unsigned char *  uuid
+ * @return static void
+ */
 static void gen_uuid(unsigned char *uuid)
 {
     char buf[UUID4_LEN];
@@ -272,6 +419,15 @@ static void gen_uuid(unsigned char *uuid)
     }
 }
 
+/**
+ * @brief  loop
+ * 连接并循环发送交易
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:57:23
+ * @param  LWSProtocol *    protocol
+ * @return static void
+ */
 static void loop(LWSProtocol *protocol)
 {
     while (1 != connected) {

@@ -295,6 +295,16 @@ static void reverse(unsigned char *p, int size)
     }
 }
 
+/**
+ * @brief  big_num_compare
+ * compare two uint256
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 11:46:31
+ * @param  big_num          data1
+ * @param  big_num          data2
+ * @return static int
+ */
 static int big_num_compare(big_num data1, big_num data2)
 {
     int i;
@@ -355,8 +365,28 @@ static size_t deserialize_join(size_t *size, const unsigned char *data, void *th
     return *size;
 }
 
+/**
+ * @brief  protocol_utils_hex2bin
+ * hex to bin
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 11:47:59
+ * @param  const char *     hex-input data hex
+ * @param  unsigned char *  bin-output bin data
+ * @return  size_t
+ */
 size_t protocol_utils_hex2bin(const char *hex, unsigned char *bin) { return hex_to_uchar(hex, bin); }
 
+/**
+ * @brief  protocol_utils_reverse
+ * reverse bytes
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 11:48:55
+ * @param  void *           data-input/output data
+ * @param  size_t           size-data length
+ * @return  void
+ */
 void protocol_utils_reverse(void *data, size_t size) { return reverse((unsigned char *)data, size); }
 
 /**
@@ -365,8 +395,8 @@ void protocol_utils_reverse(void *data, size_t size) { return reverse((unsigned 
  * @author gaochun
  * @email  gaochun@dabank.io
  * @date   2021/1/26 22:22:0
- * @param  const LWSProtocolHook * hook
- * @param  LWSProtocol **   protocol
+ * @param  const LWSProtocolHook * hook-input hook object
+ * @param  LWSProtocol **   protocol-output protocol point
  * @return  LWSPError
  */
 LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol **protocol)
@@ -426,6 +456,14 @@ LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol **protocol)
     return LWSPError_Success;
 }
 
+/**
+ * @brief  check_endian
+ * check system endian
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 11:52:29
+ * @return static int 1-little endian;0-big endian
+ */
 static int check_endian()
 {
     int a = 1;
@@ -434,6 +472,20 @@ static int check_endian()
     return (*p == 1); /*1:little-endian, 0:big-endian*/
 }
 
+/**
+ * @brief  wrap_request
+ * wrap a request
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 11:55:12
+ * @param  LWSProtocol *    protocol-input protocol point
+ * @param  const unsigned char * data-input message body
+ * @param  const size_t     data_len-input message body length
+ * @param  sha256_hash      hash-input message hash
+ * @param  unsigned char *  request-output request data
+ * @param  size_t *         length-output request data length
+ * @return static LWSPError error
+ */
 static LWSPError wrap_request(LWSProtocol *protocol, const unsigned char *data, const size_t data_len, sha256_hash hash,
                               unsigned char *request, size_t *length)
 {
@@ -459,6 +511,18 @@ static LWSPError wrap_request(LWSProtocol *protocol, const unsigned char *data, 
     return LWSPError_Success;
 }
 
+/**
+ * @brief  protocol_listunspent_request
+ * generate listunspent request
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 12:27:55
+ * @param  LWSProtocol *    protocol-input protocol object
+ * @param  sha256_hash      hash-input sha256 hash
+ * @param  unsigned char *  data-output request serilized data
+ * @param  size_t *         length-output request data length
+ * @return  LWSPError
+ */
 LWSPError protocol_listunspent_request(LWSProtocol *protocol, sha256_hash hash, unsigned char *data, size_t *length)
 {
     if (NULL == protocol) {
@@ -539,6 +603,18 @@ static int compare_utxo(ArrayListValue v1, ArrayListValue v2)
     return -1;
 }
 
+/**
+ * @brief  reply_remove_head
+ * remove reply head
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 12:31:49
+ * @param  const unsigned char * data
+ * @param  const size_t     length
+ * @param  unsigned char *  body
+ * @param  size_t *         body_len
+ * @return static LWSPError
+ */
 static LWSPError reply_remove_head(const unsigned char *data, const size_t length, unsigned char *body,
                                    size_t *body_len)
 {
@@ -556,6 +632,15 @@ static LWSPError reply_remove_head(const unsigned char *data, const size_t lengt
     return LWSPError_Success;
 }
 
+/**
+ * @brief  listunspent_body_deserialize
+ * listunspent reply deserialize
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 12:33:16
+ * @param  const unsigned char * data
+ * @return static struct ListUnspentBody
+ */
 static struct ListUnspentBody listunspent_body_deserialize(const unsigned char *data)
 {
     struct ListUnspentBody body;
@@ -649,6 +734,17 @@ static LWSPError reply_crc32(LWSProtocol *protocol, const unsigned char *data, c
     return LWSPError_Success;
 }
 
+/**
+ * @brief  protocol_listunspent_reply_handle
+ * listunspent reply handle
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 12:48:27
+ * @param  LWSProtocol *    protocol
+ * @param  const unsigned char * data
+ * @param  const size_t     len
+ * @return  LWSPError
+ */
 LWSPError protocol_listunspent_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len)
 {
     LWSPError error = reply_crc32(protocol, data, len);
@@ -695,6 +791,18 @@ LWSPError protocol_listunspent_reply_handle(LWSProtocol *protocol, const unsigne
     return LWSPError_Success;
 }
 
+/**
+ * @brief  protocol_reply_info
+ * get protocol reply infomation
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 12:49:45
+ * @param  LWSProtocol *    protocol
+ * @param  const unsigned char * data
+ * @param  const size_t     length
+ * @param  ReplyInfo *      info
+ * @return  LWSPError
+ */
 LWSPError protocol_reply_info(LWSProtocol *protocol, const unsigned char *data, const size_t length, ReplyInfo *info)
 {
     if (38 > length) {
@@ -736,6 +844,17 @@ static size_t calc_tx_fee(size_t nVchData)
     }
 }
 
+/**
+ * @brief  transaction_new
+ * create new transaction
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:21:26
+ * @param  LWSProtocol *    protocol
+ * @param  const unsigned char * address
+ * @param  const TxVchData * vch_data
+ * @return static Transaction *
+ */
 static Transaction *transaction_new(LWSProtocol *protocol, const unsigned char *address, const TxVchData *vch_data)
 {
     size_t list_len = protocol->utxo_list->length;
@@ -920,6 +1039,19 @@ static size_t transaction_serialize_without_sign(Transaction *tx, unsigned char 
     return size;
 }
 
+/**
+ * @brief  transaction_hash
+ * generate transaction hash
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:22:44
+ * @param  LWSProtocol *    protocol
+ * @param  const unsigned char * data
+ * @param  const size_t     length
+ * @param  const uint32_t   timestamp
+ * @param  unsigned char *  tx_id
+ * @return static int
+ */
 static int transaction_hash(LWSProtocol *protocol, const unsigned char *data, const size_t length,
                             const uint32_t timestamp, unsigned char *tx_id)
 {
@@ -973,6 +1105,20 @@ static size_t transaction_serialize(Transaction *tx, unsigned char *data)
     return size;
 }
 
+/**
+ * @brief  protocol_sendtx_request
+ * generate sendtx request
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:24:0
+ * @param  LWSProtocol *    protocol
+ * @param  const unsigned char * address
+ * @param  const TxVchData * vch
+ * @param  sha256_hash      hash
+ * @param  unsigned char *  data
+ * @param  size_t *         length
+ * @return  LWSPError
+ */
 LWSPError protocol_sendtx_request(LWSProtocol *protocol, const unsigned char *address, const TxVchData *vch,
                                   sha256_hash hash, unsigned char *data, size_t *length)
 {
@@ -1044,6 +1190,15 @@ LWSPError protocol_sendtx_request(LWSProtocol *protocol, const unsigned char *ad
     return LWSPError_Success;
 }
 
+/**
+ * @brief  sendtx_body_deserialize
+ * deserialize sendtx body
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:25:31
+ * @param  const unsigned char * data
+ * @return static struct SendTxBody
+ */
 static struct SendTxBody sendtx_body_deserialize(const unsigned char *data)
 {
     struct SendTxBody body;
@@ -1064,6 +1219,17 @@ static struct SendTxBody sendtx_body_deserialize(const unsigned char *data)
     return body;
 }
 
+/**
+ * @brief  protocol_sendtx_reply_handle
+ * handle sendtx reply
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:26:36
+ * @param  LWSProtocol *    protocol
+ * @param  const unsigned char * data
+ * @param  const size_t     len
+ * @return  LWSPError
+ */
 LWSPError protocol_sendtx_reply_handle(LWSProtocol *protocol, const unsigned char *data, const size_t len)
 {
     unsigned char out[len];
@@ -1085,6 +1251,15 @@ LWSPError protocol_sendtx_reply_handle(LWSProtocol *protocol, const unsigned cha
     return LWSPError_Success;
 }
 
+/**
+ * @brief  protocol_delete
+ * delete protocol object
+ * @author gaochun
+ * @email  gaochun@dabank.io
+ * @date   2021/2/6 13:27:18
+ * @param  LWSProtocol *    protocol
+ * @return  LWSPError
+ */
 LWSPError protocol_delete(LWSProtocol *protocol)
 {
     if (NULL == protocol) {
