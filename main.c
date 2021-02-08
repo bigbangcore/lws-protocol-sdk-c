@@ -226,7 +226,7 @@ static int hook_public_key_get(const void *context, ed25519_public_key key)
 {
     const char *public_key_hex = "e0b440ccdf4f2d014595e6fdec6e0cb38e18d08d2742ff777c012c4ea43ab588"; // form bbc node
     key[0] = 0x01;
-    protocol_utils_hex2bin(public_key_hex, key + 1);
+    protocol_utils_hex2bin(public_key_hex, 64, key + 1);
     protocol_utils_reverse(key + 1, 32); // 正常端序
 
     return 0;
@@ -246,7 +246,7 @@ static int hook_fork_get(const void *context, big_num fork)
 {
     // const char *fork_hex = "0000001f9a046730bf5102283f43fe51bd1c1b913b3b931c1566d9c5e1463a7e";
     const char *fork_hex = "0000000006854ebdc236f48dbbe5c87312ea0abd7398888374b5ee9a5eb1d291";
-    protocol_utils_hex2bin(fork_hex, fork);
+    protocol_utils_hex2bin(fork_hex, 64, fork);
 
     return 0;
 }
@@ -301,7 +301,7 @@ static int hook_sign_ed25519(const void *ctx, const unsigned char *data, const s
     const char *private_key_hex = "ec1883605124189bd30f04d123845052f4108ad7975f0d3a50dab22150ae42c5";
     unsigned char key[64];
     unsigned char seed[64];
-    protocol_utils_hex2bin(private_key_hex, key);
+    protocol_utils_hex2bin(private_key_hex, 64, key);
     protocol_utils_reverse(key, 32); // 正常序列
     crypto_sign_seed_keypair(&key[32], seed, (unsigned char *)key);
 

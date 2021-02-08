@@ -262,10 +262,10 @@ struct RequestHead {
  * @param  unsigned char *  bin -output unsigned char array
  * @return static size_t
  */
-static size_t hex_to_uchar(const char *hex, unsigned char *bin)
+static size_t hex_to_uchar(const char *hex, const size_t length, unsigned char *bin)
 {
-    size_t len = strlen(hex);
-    size_t final_len = len / 2;
+    // size_t len = strlen(hex);
+    size_t final_len = length / 2;
     size_t i, j;
     for (i = 0, j = 0; j < final_len; i += 2, j++) {
         bin[j] = (unsigned char)((hex[i] % 32 + 9) % 25 * 16 + (hex[i + 1] % 32 + 9) % 25);
@@ -375,7 +375,10 @@ static size_t deserialize_join(size_t *size, const unsigned char *data, void *th
  * @param  unsigned char *  bin-output bin data
  * @return  size_t
  */
-size_t protocol_utils_hex2bin(const char *hex, unsigned char *bin) { return hex_to_uchar(hex, bin); }
+size_t protocol_utils_hex2bin(const char *hex, const size_t length, unsigned char *bin)
+{
+    return hex_to_uchar(hex, length, bin);
+}
 
 /**
  * @brief  protocol_utils_reverse

@@ -85,7 +85,7 @@ typedef struct {
     uint16_t command;
 } ReplyInfo;
 
-size_t protocol_utils_hex2bin(const char *hex, unsigned char *bin);
+size_t protocol_utils_hex2bin(const char *hex, const size_t length, unsigned char *bin);
 void protocol_utils_reverse(void *data, size_t size);
 
 LWSPError protocol_new(const LWSProtocolHook *hook, LWSProtocol **protocol);
