@@ -200,7 +200,7 @@ struct _LWSProtocol {
     unsigned char last_block_hash[32];
     uint32_t last_block_height;
     uint32_t last_block_time;
-    uint32_t next_amount;
+    uint64_t next_amount;
 };
 
 struct ListUnspentRequest {
@@ -222,7 +222,7 @@ struct UTXO {
     uint8_t out;
     uint32_t timestamp;
     uint16_t type;
-    uint32_t amount;
+    uint64_t amount;
     unsigned char sender[33];
     uint32_t lock_until;
     uint16_t data_size;
