@@ -430,10 +430,12 @@ static void gen_uuid(unsigned char *uuid)
  */
 static void loop(LWSProtocol *protocol)
 {
+    // 等待mqtt连接完成
     while (1 != connected) {
         usleep(10 * 1000);
     }
 
+    // 生成初始化请求
     sha256_hash hash;
     unsigned char listunspent_request[1024];
     size_t length = 0;
@@ -447,10 +449,11 @@ static void loop(LWSProtocol *protocol)
     // sodium_bin2hex(hex, length * 2 + 1, listunspent_request, length);
     // printf("listunspent error:%d, length:%ld, hex:%s\n", error, length, hex);
 
-    // sender
+    // 发送初始化请求
     int ret = message_sender(mosq, listunspent_request, length, hash);
     printf("connect message sender return:%d\n", ret);
 
+    // 交易目标地址生成（本例发送到本地址）
     const char *target_hex = "e0b440ccdf4f2d014595e6fdec6e0cb38e18d08d2742ff777c012c4ea43ab588";
     unsigned char target[32];
     sodium_hex2bin(target, 32, target_hex, 64, NULL, NULL, NULL);
@@ -479,23 +482,23 @@ static void loop(LWSProtocol *protocol)
         length = 0;
         error = protocol_sendtx_request(protocol, target, &vch, hash, sendtx_request, &length);
 
+        // 打印发送序列
         char hex[length * 2 + 1];
         memset(hex, 0x00, length * 2 + 1);
         sodium_bin2hex(hex, length * 2 + 1, sendtx_request, length);
         printf("sendtx error:%d, length:%ld, hex:%s\n", error, length, hex);
 
         // 同步发送交易请求
-
         int ret_sendtx = message_sender(mosq, sendtx_request, length, hash);
         printf("tx sender return:%d\n", ret_sendtx);
-        // break;
+
         usleep(500 * 1000);
     }
 }
 
 int main(int argc, char **argv)
 {
-    // 初始化protocol
+    // 注册回调函数
     LWSProtocolHook hook;
     hook.hook_id_get = hook_did_get;
     hook.hook_nonce_get = hook_nonce_get;
@@ -507,6 +510,7 @@ int main(int argc, char **argv)
     hook.hook_crc32_get = hook_crc32_get;
     hook.hook_public_sign_ed25519 = hook_sign_ed25519;
 
+    // 初始化protocol实例
     LWSProtocol *protocol = NULL;
     LWSPError error = protocol_new(&hook, &protocol);
     if (LWSPError_Success != error) {
@@ -529,6 +533,7 @@ int main(int argc, char **argv)
     // 产生&发送数据
     loop(protocol);
 
+    // 删除协议实例
     if (NULL != protocol) {
         error = protocol_delete(protocol);
     }
