@@ -81,7 +81,7 @@ typedef enum {
 typedef struct {
     uint16_t version;
     unsigned char hash[32];
-    uint16_t error;
+    int16_t error;
     uint16_t command;
 } ReplyInfo;
 

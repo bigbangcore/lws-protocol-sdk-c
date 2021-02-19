@@ -60,7 +60,7 @@ static int message_sender(struct mosquitto *mosq, const unsigned char *data, con
 
     // 检查是否正确处理
     int i;
-    for (i = 0; i < 1000; i++) {
+    for (i = 0; i < 10000; i++) {
         pthread_mutex_lock(&buff.lock);
         if (1 == buff.flag) {
             pthread_mutex_unlock(&buff.lock);
@@ -356,7 +356,8 @@ static void mqtt_thread(LWSProtocol *protocol)
         return;
     }
 
-    char *host = "127.0.0.1";
+    // char *host = "127.0.0.1";
+    char *host = "192.168.199.228";
     int port = 1883;
     mosquitto_connect_callback_set(mosq, connect_callback);
     mosquitto_message_callback_set(mosq, message_callback);
@@ -459,9 +460,8 @@ static void loop(LWSProtocol *protocol)
     sodium_hex2bin(target, 32, target_hex, 64, NULL, NULL, NULL);
     protocol_utils_reverse(target, 32);
 
+    sleep(2);
     for (;;) {
-        sleep(2);
-
         // 生成交易载荷
         char *b64_json = "anNvbg==";
         TxVchData vch;
@@ -492,7 +492,7 @@ static void loop(LWSProtocol *protocol)
         int ret_sendtx = message_sender(mosq, sendtx_request, length, hash);
         printf("tx sender return:%d\n", ret_sendtx);
 
-        usleep(500 * 1000);
+        // usleep(500 * 1000);
     }
 }
 

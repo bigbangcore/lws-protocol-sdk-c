@@ -891,11 +891,18 @@ static Transaction *transaction_new(LWSProtocol *protocol, const unsigned char *
     size_t vch_data_len =
         uuid_session_size + timestamp_session_size + description_session_size + user_data_session_size;
     size_t fee = calc_tx_fee(vch_data_len);
-    utxo->amount = utxo->amount - fee;
+    printf("raw amount:%ld, \n", utxo->amount);
+
     if (utxo2 != NULL) {
         utxo->amount += utxo2->amount;
     }
 
+    if (utxo->amount < fee) {
+        return NULL;
+    }
+    utxo->amount = utxo->amount - fee;
+
+    printf("fee:%ld, amount:%ld\n", fee, utxo->amount);
     protocol->next_amount = utxo->amount; // Set global amount
 
     Transaction *tx = (Transaction *)malloc(sizeof(Transaction));
