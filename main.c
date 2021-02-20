@@ -3,6 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <getopt.h>
+#include <fcntl.h>
 #include <sodium.h>
 #include <mosquitto.h>
 #include "crc32.h"
@@ -496,9 +498,8 @@ static void loop(LWSProtocol *protocol)
     }
 }
 
-int main(int argc, char **argv)
+int child_func(const unsigned char *pk, int pfd0, int pfd1)
 {
-    // 注册回调函数
     LWSProtocolHook hook;
     hook.hook_id_get = hook_did_get;
     hook.hook_nonce_get = hook_nonce_get;
@@ -537,6 +538,84 @@ int main(int argc, char **argv)
     if (NULL != protocol) {
         error = protocol_delete(protocol);
     }
+
+    return 0;
+}
+
+int init_child_process(const unsigned char *fork_id, const unsigned char *pk, const unsigned char *sk)
+{
+    int pfd1[2], pfd2[2];
+    if (0 > pipe(pfd1) || 0 > pipe(pfd2)) {
+        // perror("pipe");
+        exit(1);
+    }
+
+    pid_t pid;
+    if ((pid = fork()) < 0) {
+        /*error*/ /*TODO:syslog*/
+        exit(1);
+    } else if (0 == pid) {
+        /*child*/
+        close(pfd1[1]);
+        close(pfd2[0]);
+        child_func(pk, pfd1[0], pfd2[1]);
+    } else {
+        /*parent*/
+        close(pfd1[0]);
+        close(pfd2[1]);
+    }
+
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    struct option long_options[] = {
+        {"file", required_argument, NULL, 'f'},
+        {"number", required_argument, NULL, 'n'},
+        {"interval", required_argument, NULL, 'i'},
+        {0, 0, 0, 0},
+    };
+
+    // // 注册回调函数
+    // LWSProtocolHook hook;
+    // hook.hook_id_get = hook_did_get;
+    // hook.hook_nonce_get = hook_nonce_get;
+    // hook.hook_datetime_get = hook_datetime_get;
+    // hook.hook_public_key_get = hook_public_key_get;
+    // hook.hook_blake2b_get = hook_blake2b_get;
+    // hook.hook_fork_get = hook_fork_get;
+    // hook.hook_sha256_get = hook_sha256_get;
+    // hook.hook_crc32_get = hook_crc32_get;
+    // hook.hook_public_sign_ed25519 = hook_sign_ed25519;
+
+    // // 初始化protocol实例
+    // LWSProtocol *protocol = NULL;
+    // LWSPError error = protocol_new(&hook, &protocol);
+    // if (LWSPError_Success != error) {
+    //     printf("porotocol error:%d\n", error);
+    //     return EXIT_FAILURE;
+    // }
+
+    // // 初始化发送端buffer
+    // memset(&buff, 0x00, sizeof(buff));
+    // pthread_mutex_init(&buff.lock, NULL);
+
+    // // 启动MQTT通讯进程
+    // pthread_t mqtt_thread_tid;
+    // int mqtt_thread_rc = pthread_create(&mqtt_thread_tid, NULL, (void *)mqtt_thread, protocol);
+    // if (0 != mqtt_thread_rc) {
+    //     printf("create mqtt thread failure.\n");
+    //     return EXIT_FAILURE;
+    // }
+
+    // // 产生&发送数据
+    // loop(protocol);
+
+    // // 删除协议实例
+    // if (NULL != protocol) {
+    //     error = protocol_delete(protocol);
+    // }
 
     return EXIT_SUCCESS;
 }
