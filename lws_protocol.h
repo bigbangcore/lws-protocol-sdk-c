@@ -62,7 +62,9 @@ typedef struct _LWSProtocol LWSProtocol;
 typedef enum {
     LWSPError_CRC32_Different,
     LWSPError_Serialize_Tx_Error,
-    LWSPError_Create_Tx_Error,
+    LWSPError_UTXO_Amount_Insufficient,
+    LWSPError_UTXO_NULL,
+    LWSPError_UTXO_List_Empty,
     LWSPError_Empty_Command_Body,
     LWSPError_Reply_Too_Short,
     LWSPError_HookSHA256GET_NULL,

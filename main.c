@@ -171,9 +171,9 @@ static void message_callback(struct mosquitto *mosq, void *obj, const struct mos
     memset(hex, 0x00, message->payloadlen * 2 + 1);
     sodium_bin2hex(hex, message->payloadlen * 2 + 1, message->payload, message->payloadlen);
 
-    // printf("got message '%.*s' for topic '%s'\n", message->payloadlen * 2 + 1, hex, message->topic);
+    printf("got message '%.*s' for topic '%s'\n", message->payloadlen * 2 + 1, hex, message->topic);
     int rc = message_receiver(protocol, message->payload, message->payloadlen);
-    // printf("message_callback return:%d\n", rc);
+    printf("message_callback return:%d\n", rc);
 }
 
 struct MqttThreadArgument {
@@ -322,13 +322,17 @@ static void loop(LWSProtocol *protocol, unsigned char *target)
         unsigned char sendtx_request[1024];
         length = 0;
         error = protocol_sendtx_request(protocol, target, &vch, hash, sendtx_request, &length);
+        if (LWSPError_Success != error) {
+            usleep(1000 * 1000);
+            continue;
+        }
 
         // 打印发送序列
         char hex[length * 2 + 1];
         memset(hex, 0x00, length * 2 + 1);
         sodium_bin2hex(hex, length * 2 + 1, sendtx_request, length);
-        // printf("sendtx error:%d, length:%ld, hex:%s\n", error, length, hex);
-        printf("sendtx error:%d, length:%ld\n", error, length);
+        printf("sendtx error:%d, length:%ld, hex:%s\n", error, length, hex);
+        // printf("sendtx error:%d, length:%ld\n", error, length);
 
         // 同步发送交易请求
         int ret_sendtx = message_sender(mosq, sendtx_request, length, hash);
