@@ -766,13 +766,6 @@ LWSPError protocol_listunspent_reply_handle(LWSProtocol *protocol, const unsigne
         }
 
         arraylist_sort(protocol->utxo_list, compare_utxo);
-
-        size_t len_1 = protocol->utxo_list->length;
-        for (int j = 0; j < len_1; j++) {
-            struct UTXO *utxo = (struct UTXO *)protocol->utxo_list->data[j];
-            printf("------------>amount[%d]:%ld\n", j, utxo->amount);
-        }
-
         arraylist_clear(body.utxo_list);
         arraylist_free(body.utxo_list);
     } else {
@@ -846,129 +839,6 @@ static size_t calc_tx_fee(size_t nVchData)
  * @param  const TxVchData * vch_data
  * @return static Transaction *
  */
-// static Transaction *transaction_new(LWSProtocol *protocol, const unsigned char *address, const TxVchData *vch_data)
-// {
-//     size_t list_len = protocol->utxo_list->length;
-//     struct UTXO *utxo = NULL;
-//     struct UTXO *utxo2 = NULL;
-
-//     if (0 == list_len) {
-//         return NULL;
-//     }
-
-//     utxo = (struct UTXO *)protocol->utxo_list->data[0];
-//     if (2 >= list_len) {
-//         utxo2 = (struct UTXO *)protocol->utxo_list->data[1];
-//     }
-
-//     if (NULL == utxo) {
-//         arraylist_clear(protocol->utxo_list);
-//         return NULL;
-//     }
-
-//     arraylist_remove(protocol->utxo_list, 0);
-//     if (utxo2 != NULL) {
-//         arraylist_remove(protocol->utxo_list, 1);
-//     }
-
-//     // VchData
-//     size_t uuid_session_size = 16;
-//     size_t timestamp_session_size = 4;
-//     size_t description_session_size = vch_data->desc_size + 1;
-//     size_t user_data_session_size = vch_data->len;
-
-//     size_t vch_data_len =
-//         uuid_session_size + timestamp_session_size + description_session_size + user_data_session_size;
-//     size_t fee = calc_tx_fee(vch_data_len);
-//     printf("raw amount:%ld\n", utxo->amount);
-
-//     if (utxo2 != NULL) {
-//         utxo->amount += utxo2->amount;
-//     }
-
-//     if (utxo->amount < fee) {
-//         return NULL;
-//     }
-//     utxo->amount = utxo->amount - fee;
-
-//     printf("fee:%ld, amount:%ld\n", fee, utxo->amount);
-//     protocol->next_amount = utxo->amount; // Set global amount
-
-//     Transaction *tx = (Transaction *)malloc(sizeof(Transaction));
-//     memset(tx, 0x00, sizeof(Transaction));
-//     tx->version = 1;
-//     tx->type = 0x00;
-
-//     tx->timestamp = protocol->hook->hook_datetime_get(protocol->hook->hook_datetime_context);
-//     tx->lock_until = 0;
-//     // TODO: The protocol USES the hash of the previous block, but for now only forkid is used
-//     // memcpy(tx->hash_anchor, G.last_block_hash, 32);
-//     unsigned char fork[32];
-//     protocol->hook->hook_fork_get(protocol->hook->hook_fork_context, fork);
-
-//     memcpy(tx->hash_anchor, fork, 32);
-//     reverse(tx->hash_anchor, 32);
-
-//     tx->size0 = 1;
-//     if (utxo2 != NULL) {
-//         tx->size0 = 2;
-//     }
-//     int len = sizeof(unsigned char) * (32 + 1) * tx->size0;
-//     unsigned char *input = (unsigned char *)malloc(len);
-//     memcpy(input, utxo->txid, 32);
-//     memcpy(input + 32, &utxo->out, 1);
-//     if (utxo2 != NULL) {
-//         memcpy(input + 33, utxo2->txid, 32);
-//         memcpy(input + 65, &utxo2->out, 1);
-//     }
-//     tx->input = input;
-
-//     tx->prefix = 1;
-
-//     if (address) {
-//         memcpy(tx->address, address, sizeof(tx->address));
-//     }
-
-//     tx->tx_fee = fee;
-//     tx->amount = utxo->amount;
-//     unsigned char *data = (unsigned char *)malloc(vch_data_len);
-
-//     size_t size = 0;
-//     size_t size_thing = sizeof(vch_data->uuid);
-//     serialize_join(&size, (void *)vch_data->uuid, size_thing, data);
-
-//     size_thing = sizeof(vch_data->timestamp);
-//     serialize_join(&size, (void *)vch_data->timestamp, size_thing, data);
-
-//     unsigned char uc8 = vch_data->desc_size;
-//     serialize_join(&size, &uc8, 1, data);
-//     if (uc8 > 0) {
-//         size_thing = vch_data->desc_size;
-//         serialize_join(&size, vch_data->desc, size_thing, data);
-//     }
-
-//     size_thing = vch_data->len;
-//     serialize_join(&size, vch_data->data, size_thing, data);
-
-//     tx->size1 = size;
-//     tx->vch_data = data;
-
-//     tx->size2 = 64;
-
-//     return tx;
-// }
-
-/**
- * @brief  transaction_new
- * create new transaction
- * @author gaochun
- * @email  gaochun@dabank.io
- * @date   2021/2/6 13:21:26
- * @param  LWSProtocol *    protocol
- * @param  const unsigned char * address
- * @param  const TxVchData * vch_data
- * @return static Transaction *
- */
 static LWSPError transaction_new(LWSProtocol *protocol, const unsigned char *address, const TxVchData *vch_data,
                                  Transaction *tx)
 {
@@ -976,24 +846,26 @@ static LWSPError transaction_new(LWSProtocol *protocol, const unsigned char *add
     struct UTXO *utxo = NULL;
     struct UTXO *utxo2 = NULL;
 
+    // size_t len_1 = protocol->utxo_list->length;
+    // for (int j = 0; j < len_1; j++) {
+    //     struct UTXO *utxo = (struct UTXO *)protocol->utxo_list->data[j];
+    //     printf("------------>amount[%d]:%ld\n", j, utxo->amount);
+    // }
+
     if (0 == list_len) {
         return LWSPError_UTXO_List_Empty;
     }
 
-    // TODO:注意这里
+    // 首个UTXO获取
     utxo = (struct UTXO *)protocol->utxo_list->data[0];
-    if (2 <= list_len) {
-        utxo2 = (struct UTXO *)protocol->utxo_list->data[1];
-    }
-
     if (NULL == utxo) {
         arraylist_clear(protocol->utxo_list);
         return LWSPError_UTXO_NULL;
     }
 
-    arraylist_remove(protocol->utxo_list, 0);
-    if (utxo2 != NULL) {
-        arraylist_remove(protocol->utxo_list, 1);
+    // 如果存在多个UTXO则获取第二个
+    if (1 < list_len) {
+        utxo2 = (struct UTXO *)protocol->utxo_list->data[1];
     }
 
     // VchData
@@ -1002,24 +874,33 @@ static LWSPError transaction_new(LWSProtocol *protocol, const unsigned char *add
     size_t description_session_size = vch_data->desc_size + 1;
     size_t user_data_session_size = vch_data->len;
 
+    // 计算vch data所需矿工费
     size_t vch_data_len =
         uuid_session_size + timestamp_session_size + description_session_size + user_data_session_size;
     size_t fee = calc_tx_fee(vch_data_len);
-    printf("raw amount:%ld\n", utxo->amount);
 
+    uint64_t utxo_0_amount = utxo->amount;
+    uint64_t utxo_1_amount = 0;
+    uint64_t utxo_2_amount = 0; // New TX output amount
+
+    // 合并第一个UTXO和第二个UTXO金额
     if (utxo2 != NULL) {
+        utxo_1_amount = utxo2->amount;
         utxo->amount += utxo2->amount;
     }
 
+    // 判断是否能支付手续费
     if (utxo->amount < fee) {
         return LWSPError_UTXO_Amount_Insufficient;
     }
-    utxo->amount = utxo->amount - fee;
 
-    printf("fee:%ld, amount:%ld\n", fee, utxo->amount);
-    protocol->next_amount = utxo->amount; // Set global amount
+    // 计算转账金额
+    utxo_2_amount = utxo->amount - fee;
+    utxo->amount = utxo_2_amount;
+    protocol->next_amount = utxo_2_amount; // Set global amount
+    printf("utxo_0_amount:%ld, utxo_1_amount:%ld, fee:%ld, utxo_2_amount:%ld\n", utxo_0_amount, utxo_1_amount, fee,
+           utxo_2_amount);
 
-    // Transaction *tx = (Transaction *)malloc(sizeof(Transaction));
     memset(tx, 0x00, sizeof(Transaction));
     tx->version = 1;
     tx->type = 0x00;
@@ -1080,32 +961,15 @@ static LWSPError transaction_new(LWSProtocol *protocol, const unsigned char *add
 
     tx->size2 = 64;
 
+    arraylist_remove(protocol->utxo_list, 0);
+    free(utxo);
+    if (utxo2 != NULL) {
+        arraylist_remove(protocol->utxo_list, 1);
+        free(utxo2);
+    }
+
     return LWSPError_Success;
 }
-
-/**
- * @brief  transaction delete
- * Destroy a transaction instance
- * @author gaochun
- * @email  gaochun@dabank.io
- * @date   2019/11/19 17:30:47
- * @param  LwsClient *      lws_client -LWS client
- * @param  Transaction *    tx         -transaction instance
- * @return  void
- */
-// static void transaction_delete(Transaction *tx)
-// {
-//     if (tx) {
-//         if (tx->vch_data) {
-//             free(tx->vch_data);
-//         }
-
-//         if (tx->input) {
-//             free(tx->input);
-//         }
-//         free(tx);
-//     }
-// }
 
 /**
  * @brief  transaction_serialize_without_sign
@@ -1260,12 +1124,6 @@ LWSPError protocol_sendtx_request(LWSProtocol *protocol, const unsigned char *ad
         return error;
     }
 
-    // 创建Tx结构体
-    // Transaction *tx = transaction_new(protocol, address, vch);
-    // if (NULL == tx) {
-    //     return LWSPError_Create_Tx_Error;
-    // }
-
     // 签名
     transaction_sign(protocol, tx);
 
@@ -1298,9 +1156,6 @@ LWSPError protocol_sendtx_request(LWSProtocol *protocol, const unsigned char *ad
     // 生成请求
     wrap_request(protocol, body, body_len, hash, data, length);
     protocol->sendtx_index++;
-
-    // 删除tx
-    // transaction_delete(tx);
 
     return LWSPError_Success;
 }
@@ -1356,9 +1211,9 @@ LWSPError protocol_sendtx_reply_handle(LWSProtocol *protocol, const unsigned cha
         // Append tx to utxo list
         struct UTXO *utxo = (struct UTXO *)malloc(sizeof(struct UTXO));
         memcpy(utxo->txid, body.tx_id, 32);
-
         utxo->amount = protocol->next_amount;
         arraylist_append(protocol->utxo_list, utxo);
+        arraylist_sort(protocol->utxo_list, compare_utxo);
     } else {
         return error;
     }

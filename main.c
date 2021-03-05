@@ -103,7 +103,6 @@ static int message_receiver(LWSProtocol *protocol, const unsigned char *data, co
     if (LWSPError_Success != error) {
         return error;
     }
-    printf("version:%d, error:%d, command:%d\n", info.version, info.error, info.command);
 
     // char hex[32 * 2 + 1];
     // memset(hex, 0x00, 32 * 2 + 1);
@@ -115,6 +114,8 @@ static int message_receiver(LWSProtocol *protocol, const unsigned char *data, co
         pthread_mutex_unlock(&buff.lock);
         return 41;
     }
+
+    printf("version:%d, error:%d, command:%d\n", info.version, info.error, info.command);
 
     buff.index = 0;
     buff.flag = 0;
@@ -171,9 +172,9 @@ static void message_callback(struct mosquitto *mosq, void *obj, const struct mos
     memset(hex, 0x00, message->payloadlen * 2 + 1);
     sodium_bin2hex(hex, message->payloadlen * 2 + 1, message->payload, message->payloadlen);
 
-    printf("got message '%.*s' for topic '%s'\n", message->payloadlen * 2 + 1, hex, message->topic);
+    // printf("got message '%.*s' for topic '%s'\n", message->payloadlen * 2 + 1, hex, message->topic);
     int rc = message_receiver(protocol, message->payload, message->payloadlen);
-    printf("message_callback return:%d\n", rc);
+    // printf("message_callback return:%d\n", rc);
 }
 
 struct MqttThreadArgument {
@@ -338,7 +339,7 @@ static void loop(LWSProtocol *protocol, unsigned char *target)
         int ret_sendtx = message_sender(mosq, sendtx_request, length, hash);
         printf("tx sender return:%d\n", ret_sendtx);
 
-        usleep(1000 * 1000);
+        usleep(5000 * 1000);
     }
 }
 
